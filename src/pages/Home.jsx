@@ -1,74 +1,126 @@
 import React from 'react'
 import { motion } from 'framer-motion'
-import { Zap, TrendingUp, Star } from 'lucide-react'
+import { Search, Droplets, Music, Palette, Trophy, TrendingUp, Star, RefreshCw } from 'lucide-react'
 
-const products = [
-  { id: 1, name: 'Emerald Watch', price: '$299', category: 'Luxury' },
-  { id: 2, name: 'Gray Velvet Chair', price: '$450', category: 'Home' },
-  { id: 3, name: 'Sleek Keyboard', price: '$120', category: 'Tech' },
-  { id: 4, name: 'Minimal Lamp', price: '$85', category: 'Decor' },
+const MOCK_CARD = '/assets/mockup_card.png'
+const ALL_CHARS = '/assets/characters/all_characters.png'
+
+const expansions = [
+  { name: 'Stellar Crown', icon: Palette, active: true },
+  { name: 'Surging Sparks', icon: Droplets },
+  { name: 'Twilight Masquerade', icon: Music },
+  { name: 'Temporal Forces', icon: Trophy },
 ]
 
-const HomePage = () => {
+const HomePage = ({ role }) => {
+  const isVendedor = role === 'Vendedor'
+
   return (
     <motion.div 
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0 }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="pb-10"
     >
-      <header className="mb-8">
-        <h1 className="text-3xl font-bold text-gradient">Pocky's Place</h1>
-        <p className="text-slate-400">Curated for excellence.</p>
-      </header>
+      {isVendedor ? (
+        <div className="space-y-8">
+          <header className="mb-8">
+            <h1 className="text-2xl font-bold mb-2">Panel de Control</h1>
+            <p className="text-gray-400 text-sm">Gestiona tus ventas y publicaciones activas.</p>
+          </header>
 
-      {/* Hero Banner */}
-      <div className="relative h-40 rounded-3xl overflow-hidden mb-8 bg-gradient-to-br from-emerald-600 to-slate-900 flex items-center p-6 border border-emerald-500/30">
-        <div className="z-10">
-          <h2 className="text-xl font-bold mb-2">Summer Essentials</h2>
-          <button className="bg-white/10 backdrop-blur-md px-4 py-2 rounded-xl text-sm font-semibold border border-white/20">
-            View Collection
-          </button>
-        </div>
-        <div className="absolute right-[-20px] top-[-20px] opacity-20">
-          <Zap size={160} />
-        </div>
-      </div>
-
-      {/* Categories */}
-      <section className="mb-8">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-semibold flex items-center gap-2">
-            <TrendingUp size={18} className="text-emerald-500" />
-            Categories
-          </h3>
-        </div>
-        <div className="flex gap-4 overflow-x-auto pb-4 no-scrollbar">
-          {['Tech', 'Luxury', 'Home', 'Fashion'].map((cat) => (
-            <div key={cat} className="flex-shrink-0 px-6 py-3 rounded-2xl glass text-sm font-medium border-emerald-500/10">
-              {cat}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="bg-emerald-50 p-6 rounded-[2rem] border border-emerald-100">
+              <p className="text-[10px] uppercase font-bold text-emerald-600 mb-1">Ventas</p>
+              <h2 className="text-2xl font-bold">$1,240.00</h2>
             </div>
-          ))}
-        </div>
-      </section>
-
-      {/* Products Grid */}
-      <section>
-        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-          <Star size={18} className="text-emerald-500" />
-          Featured
-        </h3>
-        <div className="grid grid-cols-2 gap-4">
-          {products.map((product) => (
-            <div key={product.id} className="product-card">
-              <div className="h-32 bg-slate-700/50 rounded-xl mb-3 flex items-center justify-center">
-                <span className="text-slate-500 text-xs">Image Placeholder</span>
-              </div>
-              <h4 className="font-semibold text-sm mb-1">{product.name}</h4>
-              <p className="text-emerald-400 font-bold text-sm">{product.price}</p>
+            <div className="bg-gray-50 p-6 rounded-[2rem] border border-gray-100">
+              <p className="text-[10px] uppercase font-bold text-gray-500 mb-1">Activas</p>
+              <h2 className="text-2xl font-bold">12 Cartas</h2>
             </div>
-          ))}
+          </div>
+
+          <section>
+            <h2 className="section-title">Publicaciones Recientes</h2>
+            <div className="space-y-4">
+              {[1, 2].map(i => (
+                <div key={i} className="flex gap-4 p-4 bg-white border border-gray-100 rounded-3xl shadow-sm">
+                  <div className="w-16 h-20 bg-gray-50 rounded-xl overflow-hidden flex-shrink-0">
+                    <img src={MOCK_CARD} alt="Card" className="w-full h-full object-cover" />
+                  </div>
+                  <div className="flex-1 flex flex-col justify-center">
+                    <p className="font-bold text-sm">Hyper Rare Stellar {i}</p>
+                    <p className="text-[10px] text-gray-400">Publicado hace 2h</p>
+                    <p className="text-emerald-500 font-bold mt-1">$45.00</p>
+                  </div>
+                  <div className="flex items-center">
+                    <button className="p-2 text-gray-300"><RefreshCw size={18} /></button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
         </div>
-      </section>
+      ) : (
+        <div className="space-y-6">
+          {/* Search Bar */}
+          <div className="search-container">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+            <input 
+              type="text" 
+              placeholder="Buscar por expansión, idioma, rarity..." 
+              className="search-input"
+            />
+          </div>
+
+          {/* Expansions */}
+          <div className="flex gap-3 overflow-x-auto no-scrollbar pb-2">
+            {expansions.map((ex) => (
+              <button 
+                key={ex.name} 
+                className={`category-pill ${ex.active ? 'active' : ''}`}
+              >
+                <ex.icon size={18} />
+                {ex.name}
+              </button>
+            ))}
+          </div>
+
+          <section>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-bold">Trending Collections</h2>
+              <TrendingUp size={18} className="text-emerald-500" />
+            </div>
+
+            <div className="space-y-6">
+              {[1, 2, 3].map((id) => (
+                <motion.div 
+                  key={id}
+                  className="collection-card group hover:shadow-xl transition-all"
+                >
+                  <div className="card-main-side">
+                    <div className="main-image-container bg-emerald-50 flex items-center justify-center p-4">
+                      <img 
+                        src={MOCK_CARD} 
+                        alt="Exp" 
+                        className="rounded-lg object-contain w-full h-full transform group-hover:scale-110 transition-transform"
+                      />
+                    </div>
+                    <p className="card-title">Stellar Crown {id}</p>
+                    <p className="card-subtitle">Recent Marketplace posts</p>
+                  </div>
+                  <div className="card-grid-side">
+                    {[1, 2, 3, 4].map(idx => (
+                      <div key={idx} className="grid-item bg-gray-50 p-1">
+                        <img src={ALL_CHARS} alt="item" className="w-full h-full object-cover rounded-lg" />
+                      </div>
+                    ))}
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </section>
+        </div>
+      )}
     </motion.div>
   )
 }
