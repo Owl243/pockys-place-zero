@@ -1,13 +1,12 @@
 import React, { useState, useEffect } from 'react'
 import { BrowserRouter as Router, Routes, Route, NavLink, Navigate } from 'react-router-dom'
-import { Home, Heart, BarChart2, User, Menu, PlusCircle, Package } from 'lucide-react'
+import { Home, Search, ShoppingBag, User, Menu, PlusSquare, List } from 'lucide-react'
 import HomePage from './pages/Home'
 import SearchPage from './pages/Search'
 import CartPage from './pages/Cart'
 import ProfilePage from './pages/Profile'
 import LoginPage from './pages/Login'
 import PublishPage from './pages/Publish'
-import ReloadPrompt from './components/ReloadPrompt'
 
 function App() {
   const [userRole, setUserRole] = useState(localStorage.getItem('pocky_role'))
@@ -29,18 +28,18 @@ function App() {
 
   return (
     <Router>
-      <div className="min-h-screen bg-white text-gray-900 pb-20">
+      <div className="min-h-screen bg-slate-50">
         {/* Top Header */}
         <header className="main-header">
-          <button className="p-2 -ml-2 text-gray-600 hover:bg-gray-100 rounded-full transition-colors">
-            <Menu size={24} />
-          </button>
-          <div className="flex flex-col items-center">
-            <h1 className="text-xl font-bold text-gray-800">Pocky's Place</h1>
-            <span className="text-[10px] text-emerald-500 font-bold uppercase tracking-widest">{userRole}</span>
+          <div className="flex items-center gap-4">
+            <Menu className="text-slate-600 lg:hidden" size={20} />
+            <h1>Pocky's Place</h1>
           </div>
-          <div className="profile-container flex items-center justify-center bg-emerald-50 text-emerald-600">
-            <User size={24} strokeWidth={2.5} />
+          <div className="flex items-center gap-3">
+            <span className="role-badge">{userRole}</span>
+            <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 border border-slate-200">
+              <User size={18} />
+            </div>
           </div>
         </header>
 
@@ -56,37 +55,41 @@ function App() {
         </main>
 
         {/* Bottom Navigation */}
-        <nav className="glass-nav">
-          <NavLink to="/" className={({ isActive }) => `nav-link ${isActive ? 'text-[#10b981]' : 'text-gray-300'}`}>
-            {({ isActive }) => <Home size={28} strokeWidth={isActive ? 2.5 : 2} />}
+        <nav className="main-nav">
+          <NavLink to="/" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+            <Home size={20} />
+            <span>Home</span>
           </NavLink>
 
           {userRole === 'Comprador' ? (
             <>
-              <NavLink to="/search" className={({ isActive }) => `nav-link ${isActive ? 'text-[#10b981]' : 'text-gray-300'}`}>
-                {({ isActive }) => <Heart size={28} strokeWidth={isActive ? 2.5 : 2} />}
+              <NavLink to="/search" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+                <Search size={20} />
+                <span>Explorar</span>
               </NavLink>
-              <NavLink to="/cart" className={({ isActive }) => `nav-link ${isActive ? 'text-[#10b981]' : 'text-gray-300'}`}>
-                {({ isActive }) => <BarChart2 size={28} strokeWidth={isActive ? 2.5 : 2} />}
+              <NavLink to="/cart" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+                <ShoppingBag size={20} />
+                <span>Carrito</span>
               </NavLink>
             </>
           ) : (
             <>
-              <NavLink to="/publish" className={({ isActive }) => `nav-link ${isActive ? 'text-[#10b981]' : 'text-gray-300'}`}>
-                {({ isActive }) => <PlusCircle size={28} strokeWidth={isActive ? 2.5 : 2} />}
+              <NavLink to="/publish" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+                <PlusSquare size={20} />
+                <span>Vender</span>
               </NavLink>
-              <NavLink to="/orders" className={({ isActive }) => `nav-link ${isActive ? 'text-[#10b981]' : 'text-gray-300'}`}>
-                {({ isActive }) => <Package size={28} strokeWidth={isActive ? 2.5 : 2} />}
+              <NavLink to="/orders" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+                <List size={20} />
+                <span>Ventas</span>
               </NavLink>
             </>
           )}
 
-          <NavLink to="/profile" className={({ isActive }) => `nav-link ${isActive ? 'text-[#10b981]' : 'text-gray-300'}`}>
-            {({ isActive }) => <User size={28} strokeWidth={isActive ? 2.5 : 2} />}
+          <NavLink to="/profile" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+            <User size={20} />
+            <span>Perfil</span>
           </NavLink>
         </nav>
-
-        <ReloadPrompt />
       </div>
     </Router>
   )

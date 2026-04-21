@@ -1,58 +1,59 @@
 import React from 'react'
-import { motion } from 'framer-motion'
-import { Store, ShoppingCart, ShieldCheck, Sparkles } from 'lucide-react'
+import { Store, User, Shield } from 'lucide-react'
 
 const LoginPage = ({ onLogin }) => {
   return (
-    <div className="min-h-screen bg-white flex flex-col items-center justify-center p-6">
-      <motion.div 
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="login-card w-full max-w-sm"
-      >
-        <div className="mb-10 text-center">
-          <div className="w-20 h-20 bg-emerald-500 text-white rounded-[2.5rem] mx-auto flex items-center justify-center mb-6 shadow-xl shadow-emerald-500/20 rotate-3">
-            <Sparkles size={40} />
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
+      <div className="w-full max-w-sm">
+        <div className="text-center mb-10">
+          <div className="w-16 h-16 bg-slate-900 text-white rounded-lg mx-auto flex items-center justify-center mb-4 shadow-lg">
+            <Store size={32} />
           </div>
-          <h1 className="text-4xl font-black text-gray-900 mb-2 tracking-tighter">Pocky's Place</h1>
-          <p className="text-gray-400 text-sm font-medium">Marketplace Premium de TCG</p>
+          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Pocky's Place</h1>
+          <p className="text-slate-500 mt-2 font-medium">Marketplace Profesional de Coleccionables</p>
         </div>
 
-        <div className="space-y-4">
-          <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Selecciona tu perfil</p>
+        <div className="bg-white border border-slate-200 rounded-xl p-8 shadow-sm">
+          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-6">Iniciar sesión como</p>
           
-          <button 
-            onClick={() => onLogin('Vendedor')}
-            className="role-button group hover:border-emerald-500 transition-all"
-          >
-            <div className="p-3 bg-emerald-500/10 text-emerald-600 rounded-2xl group-hover:bg-emerald-500 group-hover:text-white transition-colors">
-              <Store size={24} />
-            </div>
-            <div className="text-left">
-              <p className="font-bold text-gray-800">Soy Vendedor</p>
-              <p className="text-[10px] text-gray-400">Publica tus cartas y gestiona ventas</p>
-            </div>
-          </button>
+          <div className="space-y-3">
+            <button 
+              onClick={() => onLogin('Vendedor')}
+              className="w-full flex items-center justify-between p-4 bg-white border border-slate-200 rounded-lg hover:border-slate-900 transition-all group"
+            >
+              <div className="flex items-center gap-4">
+                <div className="p-2 bg-slate-50 rounded-md text-slate-600 group-hover:bg-slate-900 group-hover:text-white">
+                  <Store size={20} />
+                </div>
+                <div className="text-left">
+                  <p className="font-bold text-sm text-slate-900">Vendedor</p>
+                  <p className="text-[10px] text-slate-400 uppercase font-bold">Gestionar Inventario</p>
+                </div>
+              </div>
+            </button>
 
-          <button 
-            onClick={() => onLogin('Comprador')}
-            className="role-button group hover:border-emerald-500 transition-all"
-          >
-            <div className="p-3 bg-emerald-500/10 text-emerald-600 rounded-2xl group-hover:bg-emerald-500 group-hover:text-white transition-colors">
-              <ShoppingCart size={24} />
-            </div>
-            <div className="text-left">
-              <p className="font-bold text-gray-800">Soy Comprador</p>
-              <p className="text-[10px] text-gray-400">Busca las mejores cartas y colecciones</p>
-            </div>
-          </button>
+            <button 
+              onClick={() => onLogin('Comprador')}
+              className="w-full flex items-center justify-between p-4 bg-white border border-slate-200 rounded-lg hover:border-slate-900 transition-all group"
+            >
+              <div className="flex items-center gap-4">
+                <div className="p-2 bg-slate-50 rounded-md text-slate-600 group-hover:bg-slate-900 group-hover:text-white">
+                  <User size={20} />
+                </div>
+                <div className="text-left">
+                  <p className="font-bold text-sm text-slate-900">Comprador</p>
+                  <p className="text-[10px] text-slate-400 uppercase font-bold">Explorar Mercado</p>
+                </div>
+              </div>
+            </button>
+          </div>
+          
+          <div className="mt-8 pt-6 border-top border-slate-100 flex items-center justify-center gap-2 text-slate-400">
+            <Shield size={14} />
+            <span className="text-[10px] font-bold uppercase tracking-wider">Infraestructura Segura</span>
+          </div>
         </div>
-
-        <div className="mt-12 flex items-center justify-center gap-2 text-gray-300">
-          <ShieldCheck size={16} />
-          <span className="text-[10px] font-medium uppercase tracking-widest">Safe & Premium TCG Network</span>
-        </div>
-      </motion.div>
+      </div>
     </div>
   )
 }
