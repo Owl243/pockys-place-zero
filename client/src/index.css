@@ -109,3 +109,140 @@ code {
   padding: 4px 8px;
   background: var(--code-bg);
 }
+
+/* 👤 Avatar Styles */
+.avatar-container {
+    position: relative;
+    width: 120px;
+    height: 120px;
+    margin: 0 auto;
+    cursor: pointer;
+    border-radius: 50%;
+    overflow: hidden;
+    background: var(--border);
+}
+
+.avatar-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border: 3px solid var(--accent);
+    transition: all 0.3s ease;
+}
+
+.avatar-container:hover .avatar-img {
+    filter: brightness(0.6);
+    transform: scale(1.05);
+}
+
+.avatar-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+    z-index: 2;
+}
+
+.avatar-container:hover .avatar-overlay {
+    opacity: 1;
+}
+
+.uploading-spinner {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 3;
+}
+
+/* 📊 Stats Cards */
+.profile-stat-card {
+    background: var(--accent-bg);
+    border: 1px solid var(--accent-border);
+    padding: 1rem;
+    border-radius: 16px;
+    transition: transform 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 80px;
+}
+
+.profile-stat-card:hover {
+    transform: translateY(-5px);
+}
+
+.stat-value {
+    color: var(--text-h);
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 2px;
+}
+
+.stat-label {
+    color: var(--text);
+    text-transform: uppercase;
+    font-weight: 600;
+    font-size: 0.65rem;
+    letter-spacing: 0.5px;
+    opacity: 0.8;
+}
+
+/* 🔘 Profile Buttons */
+.btn-profile-primary, .btn-profile-secondary, .btn-profile-danger {
+    padding: 0.9rem;
+    border-radius: 12px;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.95rem;
+    cursor: pointer;
+}
+
+.btn-profile-primary {
+    background: var(--accent);
+    color: #fff;
+    border: 1px solid transparent;
+}
+
+.btn-profile-primary:hover {
+    filter: brightness(1.1);
+    transform: scale(1.02);
+    box-shadow: 0 4px 15px var(--accent-border);
+}
+
+.btn-profile-secondary {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text-h);
+}
+
+.btn-profile-secondary:hover {
+    background: var(--social-bg);
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+.btn-profile-danger {
+    background: transparent;
+    color: #ff4d4d;
+    margin-top: 0.5rem;
+    font-size: 0.9rem;
+}
+
+.btn-profile-danger:hover {
+    background: rgba(255, 77, 77, 0.1);
+    color: #ff1a1a;
+}

@@ -8,8 +8,12 @@ import 'bootstrap/dist/js/bootstrap.bundle.min.js';
 import "./styles.css";
 import 'bootstrap-icons/font/bootstrap-icons.css';
 
+import { ToastProvider } from "./context/ToastContext";
+
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
-    <App />
+    <ToastProvider>
+      <App />
+    </ToastProvider>
   </React.StrictMode>
 );

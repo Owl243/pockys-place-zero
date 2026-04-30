@@ -6,6 +6,7 @@ import { onAuthStateChanged } from "firebase/auth";
 
 import Navbar from "./components/Navbar";
 import MobileNavbar from "./components/MobileNavbar";
+import NotificationPanel from "./components/NotificationPanel";
 
 import Search from "./pages/Search";
 import Inventory from "./pages/Inventory";
@@ -24,6 +25,7 @@ export default function AppContent() {
 
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [showNotifs, setShowNotifs] = useState(false);
 
     useEffect(() => {
         const unsub = onAuthStateChanged(auth, (u) => {
@@ -42,9 +44,22 @@ export default function AppContent() {
         <>
             {!hideNavbar && (
                 <div className="d-none d-lg-block">
-                    <Navbar />
+                    <Navbar onToggleNotifs={() => setShowNotifs(!showNotifs)} />
                 </div>
             )}
+
+            {/* Campana de notificaciones flotante para móvil */}
+            {!hideNavbar && (
+                <button 
+                    className="btn btn-emerald rounded-circle shadow-lg d-lg-none position-fixed"
+                    style={{ bottom: "85px", right: "20px", width: "50px", height: "50px", zIndex: 900 }}
+                    onClick={() => setShowNotifs(!showNotifs)}
+                >
+                    <i className="bi bi-bell-fill"></i>
+                </button>
+            )}
+
+            <NotificationPanel isOpen={showNotifs} onClose={() => setShowNotifs(false)} />
 
             <div className="container mt-4 mb-5">
                 <Routes>
@@ -66,5 +81,4 @@ export default function AppContent() {
             {!hideNavbar && <MobileNavbar />}
         </>
     );
-
 }
