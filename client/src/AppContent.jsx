@@ -13,7 +13,7 @@ import Inventory from "./pages/Inventory";
 import Wishlist from "./pages/Wishlist";
 import Notifications from "./pages/Notifications";
 import Profile from "./pages/Profile";
-import Chat from "./pages/Chat";
+import Feed from "./pages/Feed";
 import Auth from "./pages/Auth";
 
 import { Navigate } from "react-router-dom";
@@ -74,7 +74,7 @@ export default function AppContent() {
                     <Route path="/wishlist" element={<Wishlist />} />
                     <Route path="/notifications" element={<Notifications />} />
                     <Route path="/profile" element={<Profile />} />
-                    <Route path="/chat" element={<Chat />} />
+                    <Route path="/feed" element={<Feed />} />
                 </Routes>
             </div>
 

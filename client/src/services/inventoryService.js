@@ -13,7 +13,11 @@ export const saveCard = async (userId, card, data) => {
 
     await setDoc(ref, {
         name: card.name,
-        image: card.images.small,
+        image: card.images?.small || card.image || "",
+        number: card.number || "",
+        rarity: card.rarity || "",
+        setName: card.set?.name || card.setName || "",
+        tcgplayer: card.tcgplayer || card.tcgplayer || null,
         ...data,
     });
 };

@@ -111,3 +111,22 @@ body {
     object-fit: cover;
     border: 2px solid #10b981;
 }
+
+/* Custom Utilities for visibility */
+.text-emerald { color: #10b981 !important; }
+.text-pink { color: #ff4b91 !important; }
+.text-light-muted { color: rgba(255, 255, 255, 0.6) !important; }
+.text-white-80 { color: rgba(255, 255, 255, 0.8) !important; }
+
+.active-emerald {
+    color: #10b981 !important;
+    text-shadow: 0 0 10px rgba(16, 185, 129, 0.4);
+}
+
+.active-pink {
+    color: #ff4b91 !important;
+    text-shadow: 0 0 10px rgba(255, 75, 145, 0.4);
+}
+
+.shadow-emerald { box-shadow: 0 0 15px rgba(16, 185, 129, 0.2); }
+.shadow-pink { box-shadow: 0 0 15px rgba(255, 75, 145, 0.2); }

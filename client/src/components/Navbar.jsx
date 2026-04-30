@@ -26,23 +26,23 @@ export default function Navbar({ onToggleNotifs }) {
                 <div className="collapse navbar-collapse" id="navbarNav">
                     <ul className="navbar-nav mx-auto gap-2">
                         <li className="nav-item">
-                            <Link className={`nav-link px-3 rounded-pill ${isActive("/") ? "active text-emerald fw-bold" : "text-secondary"}`} to="/">
+                            <Link className={`nav-link px-3 rounded-pill ${isActive("/") ? "active active-emerald fw-bold" : "text-white-80"}`} to="/">
                                 TCG
                             </Link>
                         </li>
                         <li className="nav-item">
-                            <Link className={`nav-link px-3 rounded-pill ${isActive("/inventory") ? "active text-emerald fw-bold" : "text-secondary"}`} to="/inventory">
+                            <Link className={`nav-link px-3 rounded-pill ${isActive("/inventory") ? "active active-emerald fw-bold" : "text-white-80"}`} to="/inventory">
                                 Inventario
                             </Link>
                         </li>
                         <li className="nav-item">
-                            <Link className={`nav-link px-3 rounded-pill ${isActive("/wishlist") ? "active text-emerald fw-bold" : "text-secondary"}`} to="/wishlist">
+                            <Link className={`nav-link px-3 rounded-pill ${isActive("/wishlist") ? "active active-pink fw-bold" : "text-white-80"}`} to="/wishlist">
                                 Wishlist
                             </Link>
                         </li>
                         <li className="nav-item">
-                            <Link className={`nav-link px-3 rounded-pill ${isActive("/chat") ? "active text-emerald fw-bold" : "text-secondary"}`} to="/chat">
-                                Chats
+                            <Link className={`nav-link px-3 rounded-pill ${isActive("/feed") ? "active active-emerald fw-bold" : "text-white-80"}`} to="/feed">
+                                Feed
                             </Link>
                         </li>
                     </ul>

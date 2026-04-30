@@ -9,11 +9,14 @@ import "./styles.css";
 import 'bootstrap-icons/font/bootstrap-icons.css';
 
 import { ToastProvider } from "./context/ToastContext";
+import { CurrencyProvider } from "./context/CurrencyContext";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <ToastProvider>
-      <App />
+      <CurrencyProvider>
+        <App />
+      </CurrencyProvider>
     </ToastProvider>
   </React.StrictMode>
 );

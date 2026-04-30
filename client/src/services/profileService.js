@@ -35,3 +35,7 @@ export const uploadProfileImage = async (file, user) => {
 
     return url;
 };
+
+export const updateDisplayName = async (user, name) => {
+    await updateProfile(user, { displayName: name });
+};

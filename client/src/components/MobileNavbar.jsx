@@ -1,4 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
+import { auth } from "../firebase";
 
 export default function MobileNavbar() {
     const location = useLocation();
@@ -8,34 +9,40 @@ export default function MobileNavbar() {
     return (
         <nav className="mobile-nav d-lg-none">
 
-            <Link to="/" className={`nav-item ${isActive("/") ? "active" : ""}`}>
+            <Link to="/" className={`nav-item ${isActive("/") ? "active-emerald" : ""}`}>
                 <i className={`bi ${isActive("/") ? "bi-house-fill" : "bi-house"}`}></i>
-                <small>Inicio</small>
+                <small className="fw-bold">TCG</small>
             </Link>
 
-            <Link to="/inventory" className={`nav-item ${isActive("/inventory") ? "active" : ""}`}>
+            <Link to="/inventory" className={`nav-item ${isActive("/inventory") ? "active-emerald" : ""}`}>
                 <i className={`bi ${isActive("/inventory") ? "bi-box-fill" : "bi-box"}`}></i>
-                <small>Inventario</small>
+                <small className="fw-bold">Inventario</small>
             </Link>
 
             <Link to="/wishlist" className={`nav-item ${isActive("/wishlist") ? "active-pink" : ""}`}>
                 <i className={`bi ${isActive("/wishlist") ? "bi-heart-fill" : "bi-heart"}`}></i>
-                <small>Wishlist</small>
+                <small className="fw-bold">Wishlist</small>
             </Link>
 
-            <Link to="/chat" className={`nav-item ${isActive("/chat") ? "active" : ""}`}>
-                <i className={`bi ${isActive("/chat") ? "bi-chat-dots-fill" : "bi-chat-dots"}`}></i>
-                <small>Chats</small>
+            <Link to="/feed" className={`nav-item ${isActive("/feed") ? "active-emerald" : ""}`}>
+                <i className={`bi ${isActive("/feed") ? "bi-rss-fill" : "bi-rss"}`}></i>
+                <small className="fw-bold">Feed</small>
             </Link>
 
-            <Link to="/profile" className={`nav-item ${isActive("/profile") ? "active" : ""}`}>
-                <i className={`bi ${isActive("/profile") ? "bi-person-fill" : "bi-person"}`}></i>
-                <small>Cuenta</small>
+            <Link to="/profile" className={`nav-item ${isActive("/profile") ? "active-emerald" : ""}`}>
+                <div className="rounded-circle overflow-hidden mx-auto mb-1 border border-white border-opacity-10" style={{ width: "24px", height: "24px" }}>
+                    <img 
+                        src={auth.currentUser?.photoURL || "https://via.placeholder.com/40"} 
+                        className="w-100 h-100 object-fit-cover"
+                        alt="Profile"
+                    />
+                </div>
+                <small className="fw-bold">Cuenta</small>
             </Link>
 
             <style>{`
-                .active-pink { color: #ff4b91 !important; }
-                .active-pink i { transform: translateY(-2px); transition: transform 0.2s ease; }
+                .nav-item i { transition: transform 0.2s ease; }
+                .nav-item:active i { transform: scale(0.9); }
             `}</style>
 
         </nav>
