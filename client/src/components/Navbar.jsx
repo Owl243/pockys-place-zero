@@ -2,7 +2,7 @@ import { Link, useLocation } from "react-router-dom";
 import { auth } from "../firebase";
 import { logout } from "../services/authService";
 
-export default function Navbar({ onToggleNotifs }) {
+export default function Navbar({ onToggleNotifs, notifCount }) {
     const location = useLocation();
 
     const handleLogout = async () => {
@@ -45,6 +45,11 @@ export default function Navbar({ onToggleNotifs }) {
                                 Feed
                             </Link>
                         </li>
+                        <li className="nav-item">
+                            <Link className={`nav-link px-3 rounded-pill ${isActive("/chats") ? "active active-emerald fw-bold" : "text-white-80"}`} to="/chats">
+                                Mensajes
+                            </Link>
+                        </li>
                     </ul>
                 </div>
 
@@ -53,9 +58,14 @@ export default function Navbar({ onToggleNotifs }) {
                     {/* 🔔 Notificaciones (Botón que abre panel flotante) */}
                     <button 
                         onClick={onToggleNotifs}
-                        className="btn btn-link text-secondary p-0 hover-emerald"
+                        className="btn btn-dark bg-opacity-40 border-white border-opacity-10 rounded-circle p-2 position-relative shadow-sm hover-scale-110 transition-all me-2"
                     >
-                        <i className="bi bi-bell fs-5"></i>
+                        <i className="bi bi-bell-fill text-warning"></i>
+                        {notifCount > 0 && (
+                            <span className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-warning text-dark fw-bold border border-dark border-2" style={{ fontSize: '0.6rem' }}>
+                                {notifCount}
+                            </span>
+                        )}
                     </button>
 
                     {/* 👤 Usuario dropdown */}
@@ -66,7 +76,7 @@ export default function Navbar({ onToggleNotifs }) {
                             data-bs-toggle="dropdown"
                         >
                             <img 
-                                src={auth.currentUser?.photoURL || "https://via.placeholder.com/40"} 
+                                src={auth.currentUser?.photoURL || `https://ui-avatars.com/api/?name=${auth.currentUser?.displayName || 'User'}&background=10b981&color=fff`} 
                                 className="w-100 h-100 object-fit-cover"
                                 alt="Profile"
                             />

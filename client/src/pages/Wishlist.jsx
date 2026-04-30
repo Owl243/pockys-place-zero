@@ -3,6 +3,7 @@ import { auth } from "../firebase";
 import { getInventory, saveCard } from "../services/inventoryService";
 import { useToast } from "../context/ToastContext";
 import { useCurrency } from "../context/CurrencyContext";
+import { getPriceRaw } from "../utils/cardUtils";
 
 export default function Wishlist() {
     const showToast = useToast();
@@ -38,15 +39,7 @@ export default function Wishlist() {
         load();
     };
 
-    const getPriceRaw = (card) => {
-        const tcg = card.tcgplayer?.prices;
-        if (!tcg) return null;
-        const types = ['holofoil', 'normal', 'reverseHolofoil', '1stEditionHolofoil'];
-        for (const type of types) {
-            if (tcg[type]?.market) return tcg[type].market;
-        }
-        return null;
-    };
+
 
     return (
         <div className="container py-3 mb-5">

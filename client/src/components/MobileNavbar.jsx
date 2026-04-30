@@ -29,10 +29,15 @@ export default function MobileNavbar() {
                 <small className="fw-bold">Feed</small>
             </Link>
 
+            <Link to="/chats" className={`nav-item ${isActive("/chats") ? "active-emerald" : ""}`}>
+                <i className={`bi ${isActive("/chats") ? "bi-chat-left-dots-fill" : "bi-chat-left-dots"}`}></i>
+                <small className="fw-bold">Mensajes</small>
+            </Link>
+
             <Link to="/profile" className={`nav-item ${isActive("/profile") ? "active-emerald" : ""}`}>
                 <div className="rounded-circle overflow-hidden mx-auto mb-1 border border-white border-opacity-10" style={{ width: "24px", height: "24px" }}>
                     <img 
-                        src={auth.currentUser?.photoURL || "https://via.placeholder.com/40"} 
+                        src={auth.currentUser?.photoURL || `https://ui-avatars.com/api/?name=${auth.currentUser?.displayName || 'User'}&background=10b981&color=fff`} 
                         className="w-100 h-100 object-fit-cover"
                         alt="Profile"
                     />

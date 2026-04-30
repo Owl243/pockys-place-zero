@@ -125,13 +125,13 @@ export default function Profile() {
             
             {/* ✂️ Cropper Overlay */}
             {showCropper && (
-                <div className="position-fixed top-0 start-0 w-100 vh-100 bg-dark d-flex flex-column animate-fade-in" style={{ zIndex: 9999 }}>
+                <div className="position-fixed top-0 start-0 w-100 bg-dark d-flex flex-column animate-fade-in" style={{ zIndex: 9999, height: '100dvh' }}>
                     <div className="p-3 d-flex justify-content-between align-items-center border-bottom border-white border-opacity-10 bg-dark">
                         <h6 className="text-white fw-bold mb-0">Acomodar Imagen</h6>
                         <button className="btn btn-sm btn-outline-light rounded-circle border-0" onClick={() => setShowCropper(false)}><i className="bi bi-x-lg"></i></button>
                     </div>
                     
-                    <div className="flex-grow-1 position-relative bg-black">
+                    <div className="flex-grow-1 position-relative bg-black" style={{ minHeight: '300px' }}>
                         <Cropper
                             image={image}
                             crop={crop}
@@ -145,7 +145,7 @@ export default function Profile() {
                         />
                     </div>
                     
-                    <div className="p-3 bg-dark border-top border-white border-opacity-10 shadow-lg">
+                    <div className="p-3 bg-dark border-top border-white border-opacity-10 shadow-lg pb-safe">
                         <div className="d-flex align-items-center gap-2 mb-3 mx-auto" style={{ maxWidth: '300px' }}>
                             <i className="bi bi-zoom-out text-white-50 small"></i>
                             <input 
@@ -157,7 +157,7 @@ export default function Profile() {
                             />
                             <i className="bi bi-zoom-in text-white-50 small"></i>
                         </div>
-                        <div className="d-flex gap-2 justify-content-center">
+                        <div className="d-flex gap-2 justify-content-center mb-2">
                             <button className="btn btn-outline-secondary btn-sm px-3 py-2 rounded-pill text-white border-opacity-25" onClick={() => setShowCropper(false)}>Cancelar</button>
                             <button className="btn btn-emerald btn-sm px-4 py-2 rounded-pill text-white fw-bold shadow-emerald" onClick={handleCropSave}>
                                 {uploading ? <span className="spinner-border spinner-border-sm me-2"></span> : <i className="bi bi-check-circle-fill me-2"></i>}
@@ -175,7 +175,7 @@ export default function Profile() {
                     style={{ width: '120px', height: '120px', cursor: 'pointer', position: 'relative' }}
                 >
                     <img
-                        src={photoURL || "https://via.placeholder.com/120"}
+                        src={photoURL || `https://ui-avatars.com/api/?name=${auth.currentUser?.displayName || 'User'}&background=10b981&color=fff&size=128`}
                         className={`rounded-circle border border-white border-opacity-10 w-100 h-100 object-fit-cover ${uploading ? 'opacity-25' : ''}`}
                         alt="Avatar"
                     />

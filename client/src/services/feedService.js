@@ -12,6 +12,7 @@ import {
     writeBatch,
     doc
 } from "firebase/firestore";
+import { notifyWishlistUsers } from "./notificationService";
 
 const FEED_COLLECTION = "feed";
 
@@ -39,7 +40,7 @@ export const postToFeed = async (userId, userName, userPhoto, action, card) => {
         await addDoc(collection(db, FEED_COLLECTION), {
             userId,
             userName: userName || "Coleccionista",
-            userPhoto: userPhoto || "https://via.placeholder.com/40",
+            userPhoto: userPhoto || `https://ui-avatars.com/api/?name=${userName}&background=random`,
             action, // 'sale', 'message', 'sale_finished', etc.
             cardName: card?.name || null,
             cardNumber: card?.number || "",
@@ -51,6 +52,11 @@ export const postToFeed = async (userId, userName, userPhoto, action, card) => {
             message: action === 'sale' ? `ha puesto en venta a ${card.name}!` : 
                      action === 'sale_finished' ? `ha finalizado la venta de ${card.name}` : null
         });
+
+        // 🔔 Si es una venta, notificar a interesados
+        if (action === 'sale') {
+            await notifyWishlistUsers(userId, card);
+        }
     } catch (error) {
         console.error("Error posting to feed:", error);
     }
@@ -79,7 +85,7 @@ export const sendFeedMessage = async (userId, userName, userPhoto, text) => {
         await addDoc(collection(db, FEED_COLLECTION), {
             userId,
             userName: userName || "Coleccionista",
-            userPhoto: userPhoto || "https://via.placeholder.com/40",
+            userPhoto: userPhoto || `https://ui-avatars.com/api/?name=${userName}&background=random`,
             action: 'message',
             message: text,
             timestamp: serverTimestamp()

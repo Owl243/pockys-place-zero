@@ -5,6 +5,7 @@ import { saveCard, getInventory } from "../services/inventoryService";
 import { useToast } from "../context/ToastContext";
 import { postToFeed } from "../services/feedService";
 import { useCurrency } from "../context/CurrencyContext";
+import { getPriceRaw, normalizeCardNumber } from "../utils/cardUtils";
 
 export default function Search() {
     const showToast = useToast();
@@ -53,8 +54,12 @@ export default function Search() {
             }
             const user = auth.currentUser;
             if (user) {
-                const inv = await getInventory(user.uid);
-                setUserInventory(inv);
+                try {
+                    const inv = await getInventory(user.uid);
+                    setUserInventory(inv);
+                } catch (err) {
+                    console.error("Error al cargar inventario inicial:", err);
+                }
             }
         };
         fetchData();
@@ -96,14 +101,28 @@ export default function Search() {
         // Determinar el campo de ordenamiento
         let orderBy = currentSort;
         if (currentSort === "price") {
-            // El API prefiere ordenar por un tipo de precio específico
             orderBy = "-tcgplayer.prices.holofoil.market,-tcgplayer.prices.normal.market";
+        } else if (currentSort === "number") {
+            // Algunos sets nuevos necesitan 'number' explícito
+            orderBy = "number";
         }
 
         try {
-            const res = await fetch(`https://api.pokemontcg.io/v2/cards?q=${q}&page=${currentPage}&pageSize=${pageSize}&orderBy=${orderBy}`);
+            const limit = pageSize;
+            const res = await fetch(`https://api.pokemontcg.io/v2/cards?q=${q}&page=${currentPage}&pageSize=${limit}&orderBy=${orderBy}`);
             const data = await res.json();
-            setCards(data.data || []);
+            let results = data.data || [];
+
+            // 🛠️ ORDENAMIENTO NATURAL LOCAL (Fix para sets nuevos como Ascended/Perfect Order)
+            if (currentSort === "number") {
+                results.sort((a, b) => {
+                    const numA = normalizeCardNumber(a.number);
+                    const numB = normalizeCardNumber(b.number);
+                    return numA.localeCompare(numB);
+                });
+            }
+
+            setCards(results);
             setTotalCount(data.totalCount || 0);
         } catch (error) {
             console.error("Error en búsqueda:", error);
@@ -172,15 +191,7 @@ export default function Search() {
     const currentSets = sets.slice(firstSetIndex, lastSetIndex);
     const totalSetPages = Math.ceil(sets.length / setsPerPage);
 
-    const getPriceRaw = (card) => {
-        const tcg = card.tcgplayer?.prices;
-        if (!tcg) return null;
-        const types = ['holofoil', 'normal', 'reverseHolofoil', '1stEditionHolofoil'];
-        for (const type of types) {
-            if (tcg[type]?.market) return tcg[type].market;
-        }
-        return null;
-    };
+
 
     return (
         <div className="container py-3 mb-5">
@@ -248,9 +259,10 @@ export default function Search() {
                                 <div className="card-body p-4 text-start d-flex flex-column">
                                     <div className="mb-2 d-flex flex-wrap justify-content-between align-items-center gap-1">
                                         <span className="badge text-emerald border border-emerald border-opacity-30 rounded-pill px-2 py-1" style={{ fontSize: '0.6rem' }}>{card.set.name}</span>
-                                        {getPriceRaw(card) && (
-                                            <span className="text-white fw-bold small opacity-75 ms-auto"><i className="bi bi-tag-fill text-emerald me-1"></i>{formatPrice(getPriceRaw(card))}</span>
-                                        )}
+                                        <span className="text-white fw-bold small opacity-75 ms-auto">
+                                            <i className="bi bi-tag-fill text-emerald me-1"></i>
+                                            {getPriceRaw(card) ? formatPrice(getPriceRaw(card)) : "N/A"}
+                                        </span>
                                     </div>
                                     <h6 className="fw-bold mb-1 text-white text-truncate fs-6 opacity-90">{card.name}</h6>
                                     <p className="text-light-muted mb-4" style={{ fontSize: '0.7rem' }}>

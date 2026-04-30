@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { auth } from "../firebase";
-import { listenNotifications } from "../services/notificationService";
+import { listenNotifications, markAsRead } from "../services/notificationService";
+import { Link } from "react-router-dom";
 
 export default function NotificationPanel({ isOpen, onClose }) {
     const [notifications, setNotifications] = useState([]);
@@ -15,6 +16,13 @@ export default function NotificationPanel({ isOpen, onClose }) {
 
         return () => unsubscribe();
     }, [isOpen]);
+
+    const handleAction = async (n) => {
+        if (!n.read && auth.currentUser) {
+            await markAsRead(auth.currentUser.uid, n.id);
+        }
+        onClose();
+    };
 
     if (!isOpen) return null;
 
@@ -50,15 +58,33 @@ export default function NotificationPanel({ isOpen, onClose }) {
                         </div>
                     ) : (
                         notifications.map((n) => (
-                            <div key={n.id} className="p-3 mb-2 rounded-3 bg-light bg-opacity-10 border-start border-emerald border-4">
-                                <div className="d-flex gap-2">
-                                    <i className="bi bi-info-circle text-emerald"></i>
+                            <div key={n.id} className={`p-3 mb-2 rounded-4 bg-dark bg-opacity-75 border-start border-4 d-flex gap-3 position-relative shadow-sm transition-all hover-scale-105 ${n.read ? 'border-secondary opacity-50' : 'border-emerald'}`}>
+                                {n.cardImage && (
+                                    <img src={n.cardImage} alt="Carta" className={`rounded shadow-sm border border-white border-opacity-10 ${n.read ? 'grayscale' : ''}`} style={{ width: '50px', height: '70px', objectFit: 'cover', filter: n.read ? 'grayscale(80%)' : 'none' }} />
+                                )}
+                                <div className="flex-grow-1 d-flex flex-column justify-content-between">
                                     <div>
-                                        <p className="mb-0 small fw-bold text-white">{n.type === 'match' ? '¡Match encontrado!' : 'Aviso'}</p>
-                                        <p className="mb-0 small text-light opacity-75">{n.message}</p>
-                                        <small className="text-muted" style={{ fontSize: '0.65rem' }}>
-                                            {n.createdAt?.toDate ? n.createdAt.toDate().toLocaleTimeString() : 'Hace un momento'}
+                                        <p className={`mb-1 fw-bold ${n.read ? 'text-secondary' : 'text-emerald'}`} style={{ fontSize: '0.9rem' }}>
+                                            {n.type === 'wishlist_match' ? '¡Deseo encontrado!' : 'Aviso'}
+                                        </p>
+                                        <p className="mb-2 text-white lh-sm fw-medium" style={{ fontSize: '0.8rem' }}>
+                                            {n.message}
+                                        </p>
+                                    </div>
+                                    <div className="d-flex justify-content-between align-items-center mt-1">
+                                        <small className="text-white text-opacity-50" style={{ fontSize: '0.7rem' }}>
+                                            {n.createdAt?.toDate ? n.createdAt.toDate().toLocaleDateString() : 'Reciente'}
                                         </small>
+                                        {n.link && (
+                                            <Link 
+                                                to={n.link} 
+                                                className="btn btn-dark btn-sm rounded-pill px-3 py-1 fw-bold text-white border border-white border-opacity-10" 
+                                                style={{ fontSize: '0.7rem', backgroundColor: 'rgba(255,255,255,0.05)' }}
+                                                onClick={() => handleAction(n)}
+                                            >
+                                                Ver ahora
+                                            </Link>
+                                        )}
                                     </div>
                                 </div>
                             </div>

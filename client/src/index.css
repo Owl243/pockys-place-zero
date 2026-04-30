@@ -66,6 +66,14 @@ body {
   box-sizing: border-box;
 }
 
+.pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+}
+
+.h-dvh {
+    height: 100dvh;
+}
+
 h1,
 h2 {
   font-family: var(--heading);
