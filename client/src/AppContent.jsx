@@ -52,7 +52,7 @@ export default function AppContent() {
             {!hideNavbar && (
                 <button 
                     className="btn btn-emerald rounded-circle shadow-lg d-lg-none position-fixed"
-                    style={{ bottom: "85px", right: "20px", width: "50px", height: "50px", zIndex: 900 }}
+                    style={{ top: "20px", right: "20px", width: "50px", height: "50px", zIndex: 900 }}
                     onClick={() => setShowNotifs(!showNotifs)}
                 >
                     <i className="bi bi-bell-fill"></i>

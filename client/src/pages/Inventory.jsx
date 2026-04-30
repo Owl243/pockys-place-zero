@@ -94,8 +94,8 @@ export default function Inventory() {
                                     <img src={card.image} className="img-fluid h-100 object-fit-contain w-100 position-relative z-1 drop-shadow-card" />
                                 </div>
                                 <div className="card-body p-4 text-start d-flex flex-column">
-                                    <div className="mb-2 d-flex justify-content-between align-items-center">
-                                        <div className="d-flex gap-1">
+                                    <div className="mb-2 d-flex flex-wrap justify-content-between align-items-center gap-1">
+                                        <div className="d-flex gap-1 flex-wrap">
                                             <span className="badge text-emerald border border-emerald border-opacity-30 rounded-pill px-2 py-1" style={{ fontSize: '0.6rem' }}>
                                                 Colección
                                             </span>
@@ -106,7 +106,7 @@ export default function Inventory() {
                                             )}
                                         </div>
                                         {getPriceRaw(card) && (
-                                            <span className="text-white fw-bold small opacity-75"><i className="bi bi-tag-fill text-emerald me-1"></i>{formatPrice(getPriceRaw(card))}</span>
+                                            <span className="text-white fw-bold small opacity-75 ms-auto"><i className="bi bi-tag-fill text-emerald me-1"></i>{formatPrice(getPriceRaw(card))}</span>
                                         )}
                                     </div>
                                     <h6 className="fw-bold mb-1 text-white text-truncate fs-6 opacity-90">{card.name}</h6>
