@@ -1,4 +1,5 @@
-import { auth } from "../firebase";
+import { auth, db } from "../firebase";
+import { doc, getDoc, setDoc } from "firebase/firestore";
 import { logout } from "../services/authService";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState, useRef, useCallback } from "react";
@@ -6,6 +7,7 @@ import { getInventory } from "../services/inventoryService";
 import { uploadProfileImage, updateDisplayName } from "../services/profileService";
 import { useToast } from "../context/ToastContext";
 import { updateUserInFeed } from "../services/feedService";
+import { isAdmin, isPro } from "../services/chatService";
 import Cropper from "react-easy-crop";
 import { getCroppedImg } from "../utils/cropImage";
 import { useCurrency } from "../context/CurrencyContext";
@@ -23,6 +25,8 @@ export default function Profile() {
         wishlist: 0,
         selling: 0,
     });
+    const [deliveryPrefs, setDeliveryPrefs] = useState([]);
+    const [savingPrefs, setSavingPrefs] = useState(false);
 
     // Cropping states
     const [image, setImage] = useState(null);
@@ -37,12 +41,24 @@ export default function Profile() {
             if (!user) return;
             setPhotoURL(user.photoURL);
             setNewName(user.displayName || "");
+
+            // Load stats
             const data = await getInventory(user.uid);
             setStats({
                 inventory: data.filter(c => c.inInventory).length,
                 wishlist: data.filter(c => c.inWishlist).length,
                 selling: data.filter(c => c.forSale).length,
             });
+
+            // Load delivery preferences
+            try {
+                const userDoc = await getDoc(doc(db, "users", user.uid));
+                if (userDoc.exists()) {
+                    setDeliveryPrefs(userDoc.data().deliveryPrefs || []);
+                }
+            } catch (err) {
+                console.error("Error fetching user data:", err);
+            }
         };
         load();
     }, []);
@@ -63,10 +79,36 @@ export default function Profile() {
         }
     };
 
+    const toggleDeliveryPref = async (pref) => {
+        const user = auth.currentUser;
+        if (!user) return;
+
+        setSavingPrefs(true);
+        try {
+            const newPrefs = deliveryPrefs.includes(pref)
+                ? deliveryPrefs.filter(p => p !== pref)
+                : [...deliveryPrefs, pref];
+
+            setDeliveryPrefs(newPrefs);
+
+            await setDoc(doc(db, "users", user.uid), {
+                deliveryPrefs: newPrefs
+            }, { merge: true });
+            showToast("Preferencias actualizadas", "success");
+        } catch (err) {
+            console.error("Error updating prefs:", err);
+            showToast("Error al guardar preferencia", "error");
+            // Revert state on error
+            setDeliveryPrefs(deliveryPrefs);
+        } finally {
+            setSavingPrefs(false);
+        }
+    };
+
     const handleImageChange = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
-        
+
         const reader = new FileReader();
         reader.addEventListener("load", () => {
             setImage(reader.result);
@@ -87,11 +129,11 @@ export default function Profile() {
         try {
             const croppedBlob = await getCroppedImg(image, croppedAreaPixels);
             const croppedFile = new File([croppedBlob], "avatar.jpg", { type: "image/jpeg" });
-            
+
             const user = auth.currentUser;
             const url = await uploadProfileImage(croppedFile, user);
             await updateUserInFeed(user.uid, { userPhoto: url });
-            
+
             setPhotoURL(url);
             showToast("Foto actualizada y centrada", "success");
         } catch (err) {
@@ -122,7 +164,7 @@ export default function Profile() {
     return (
         <div className="container py-4">
             {/* ... (Cropper Overlay) */}
-            
+
             {/* ✂️ Cropper Overlay */}
             {showCropper && (
                 <div className="position-fixed top-0 start-0 w-100 bg-dark d-flex flex-column animate-fade-in" style={{ zIndex: 9999, height: '100dvh' }}>
@@ -130,7 +172,7 @@ export default function Profile() {
                         <h6 className="text-white fw-bold mb-0">Acomodar Imagen</h6>
                         <button className="btn btn-sm btn-outline-light rounded-circle border-0" onClick={() => setShowCropper(false)}><i className="bi bi-x-lg"></i></button>
                     </div>
-                    
+
                     <div className="flex-grow-1 position-relative bg-black" style={{ minHeight: '300px' }}>
                         <Cropper
                             image={image}
@@ -144,16 +186,16 @@ export default function Profile() {
                             showGrid={false}
                         />
                     </div>
-                    
+
                     <div className="p-3 bg-dark border-top border-white border-opacity-10 shadow-lg pb-safe">
                         <div className="d-flex align-items-center gap-2 mb-3 mx-auto" style={{ maxWidth: '300px' }}>
                             <i className="bi bi-zoom-out text-white-50 small"></i>
-                            <input 
-                                type="range" 
-                                className="form-range flex-grow-1" 
-                                min={1} max={3} step={0.1} 
-                                value={zoom} 
-                                onChange={(e) => setZoom(e.target.value)} 
+                            <input
+                                type="range"
+                                className="form-range flex-grow-1"
+                                min={1} max={3} step={0.1}
+                                value={zoom}
+                                onChange={(e) => setZoom(e.target.value)}
                             />
                             <i className="bi bi-zoom-in text-white-50 small"></i>
                         </div>
@@ -169,8 +211,8 @@ export default function Profile() {
             )}
 
             <div className="text-center mb-5">
-                <div 
-                    className="avatar-container mb-2 mx-auto shadow-2xl" 
+                <div
+                    className="avatar-container mb-2 mx-auto shadow-2xl"
                     onClick={() => !uploading && fileInputRef.current.click()}
                     style={{ width: '120px', height: '120px', cursor: 'pointer', position: 'relative' }}
                 >
@@ -190,7 +232,7 @@ export default function Profile() {
                 </div>
 
                 {photoURL && (
-                    <button 
+                    <button
                         className="btn btn-link text-emerald small p-0 mb-3 text-decoration-none opacity-75 hover-opacity-100"
                         onClick={handleRepositionCurrent}
                     >
@@ -202,8 +244,8 @@ export default function Profile() {
 
                 {editing ? (
                     <div className="d-flex justify-content-center align-items-center gap-2 mb-2">
-                        <input 
-                            type="text" 
+                        <input
+                            type="text"
                             className="form-control form-control-sm bg-dark text-white border-emerald w-auto text-center fw-bold"
                             value={newName}
                             onChange={(e) => setNewName(e.target.value)}
@@ -213,30 +255,69 @@ export default function Profile() {
                         <button className="btn btn-sm btn-outline-secondary text-white border-opacity-50" onClick={() => setEditing(false)}><i className="bi bi-x-lg"></i></button>
                     </div>
                 ) : (
-                    <h3 className="fw-bold mb-1 text-white">{auth.currentUser?.displayName || auth.currentUser?.email.split("@")[0]}</h3>
+                    <div className="d-flex justify-content-center align-items-center gap-2 mb-1">
+                        <h3 className="fw-bold mb-0 text-white">{auth.currentUser?.displayName || auth.currentUser?.email.split("@")[0]}</h3>
+                        {isPro(auth.currentUser) && (
+                            <span className="badge rounded-pill fw-bold" style={{ background: "linear-gradient(135deg,#f59e0b,#f97316)", fontSize: "0.65rem", letterSpacing: "0.5px" }}>⭐ PRO</span>
+                        )}
+                        {isAdmin(auth.currentUser) && (
+                            <span className="badge rounded-pill fw-bold bg-danger" style={{ fontSize: "0.65rem", letterSpacing: "0.5px" }}>ADMIN</span>
+                        )}
+                    </div>
                 )}
-                
+
                 <p className="text-emerald opacity-75 small fw-bold tracking-wide">{auth.currentUser?.email}</p>
             </div>
 
             <div className="bg-dark bg-opacity-40 p-4 rounded-4 border border-white border-opacity-5 mb-4 shadow-xl">
-                <div className="d-flex justify-content-between align-items-center">
+                <div className="d-flex justify-content-between align-items-center mb-4">
                     <div>
                         <h6 className="text-white fw-bold mb-0">Precios y Moneda</h6>
-                        <p className="text-light-muted small mb-0">Elige cómo ver los precios de mercado</p>
+                        <p className="text-light-muted small mb-0">Elige cómo ver los precios</p>
                     </div>
                     <div className="btn-group rounded-pill overflow-hidden border border-white border-opacity-10 p-1 bg-black bg-opacity-20 shadow-inner" style={{ minWidth: '160px' }}>
-                        <button 
+                        <button
                             className={`btn btn-sm px-4 rounded-pill border-0 fw-bold transition-all duration-300 ${currency === 'USD' ? 'btn-emerald text-white shadow-emerald' : 'text-white-50 opacity-50'}`}
                             onClick={() => currency !== 'USD' && toggleCurrency()}
                         >
                             USD
                         </button>
-                        <button 
+                        <button
                             className={`btn btn-sm px-4 rounded-pill border-0 fw-bold transition-all duration-300 ${currency === 'MXN' ? 'btn-emerald text-white shadow-emerald' : 'text-white-50 opacity-50'}`}
                             onClick={() => currency !== 'MXN' && toggleCurrency()}
                         >
                             MXN
+                        </button>
+                    </div>
+                </div>
+
+                <hr className="border-white border-opacity-10 my-4" />
+
+                <div className="mb-2">
+                    <h6 className="text-white fw-bold mb-1">Medios de Entrega (Ventas)</h6>
+                    <p className="text-light-muted small mb-3">Tus ventas aparecerán con estos iconos en el feed para que los compradores sepan cómo entregas.</p>
+
+                    <div className="d-flex gap-2 flex-wrap">
+                        <button
+                            className={`btn btn-sm rounded-pill fw-bold transition-all ${deliveryPrefs.includes('Envío') ? 'btn-emerald text-white shadow-emerald' : 'bg-black bg-opacity-20 text-white-50 border border-white border-opacity-10'}`}
+                            onClick={() => toggleDeliveryPref('Envío')}
+                            disabled={savingPrefs}
+                        >
+                            <i className="bi bi-box-seam me-2"></i>Envío
+                        </button>
+                        <button
+                            className={`btn btn-sm rounded-pill fw-bold transition-all ${deliveryPrefs.includes('Blanquita/Frikiplaza') ? 'btn-emerald text-white shadow-emerald' : 'bg-black bg-opacity-20 text-white-50 border border-white border-opacity-10'}`}
+                            onClick={() => toggleDeliveryPref('Blanquita/Frikiplaza')}
+                            disabled={savingPrefs}
+                        >
+                            <i className="bi bi-geo-alt-fill me-2"></i>Blanquita
+                        </button>
+                        <button
+                            className={`btn btn-sm rounded-pill fw-bold transition-all ${deliveryPrefs.includes('Metro (CDMX)') ? 'btn-emerald text-white shadow-emerald' : 'bg-black bg-opacity-20 text-white-50 border border-white border-opacity-10'}`}
+                            onClick={() => toggleDeliveryPref('Metro (CDMX)')}
+                            disabled={savingPrefs}
+                        >
+                            <i className="bi bi-train-front me-2"></i>Metro (CDMX)
                         </button>
                     </div>
                 </div>

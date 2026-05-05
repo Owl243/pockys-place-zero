@@ -9,10 +9,12 @@ import {
     serverTimestamp,
     where,
     getDocs,
+    getDoc,
     writeBatch,
     doc
 } from "firebase/firestore";
 import { notifyWishlistUsers } from "./notificationService";
+import { isPro } from "./chatService";
 
 const FEED_COLLECTION = "feed";
 
@@ -35,13 +37,25 @@ export const updateUserInFeed = async (userId, updates) => {
 };
 
 // 📝 Crear una publicación en el feed
-export const postToFeed = async (userId, userName, userPhoto, action, card) => {
+export const postToFeed = async (userId, userName, userPhoto, action, card, userObj = null) => {
     try {
+        let deliveryPrefs = [];
+        try {
+            const userDoc = await getDoc(doc(db, "users", userId));
+            if (userDoc.exists()) {
+                deliveryPrefs = userDoc.data().deliveryPrefs || [];
+            }
+        } catch (e) {
+            console.error("Error fetching delivery prefs:", e);
+        }
+
         await addDoc(collection(db, FEED_COLLECTION), {
             userId,
             userName: userName || "Coleccionista",
             userPhoto: userPhoto || `https://ui-avatars.com/api/?name=${userName}&background=random`,
-            action, // 'sale', 'message', 'sale_finished', etc.
+            isPro: userObj ? isPro(userObj) : false,
+            deliveryPrefs,
+            action,
             cardName: card?.name || null,
             cardNumber: card?.number || "",
             cardRarity: card?.rarity || "",
@@ -53,7 +67,6 @@ export const postToFeed = async (userId, userName, userPhoto, action, card) => {
                      action === 'sale_finished' ? `ha finalizado la venta de ${card.name}` : null
         });
 
-        // 🔔 Si es una venta, notificar a interesados
         if (action === 'sale') {
             await notifyWishlistUsers(userId, card);
         }
@@ -92,5 +105,55 @@ export const sendFeedMessage = async (userId, userName, userPhoto, text) => {
         });
     } catch (error) {
         console.error("Error sending message to feed:", error);
+    }
+};
+
+// 💗 Publicar wishlist al feed comunitario
+export const postWishlistPublic = async (userId, userName, userPhoto, card) => {
+    try {
+        // Evitar duplicados: verificar si ya existe para este userId + cardId
+        const existing = query(
+            collection(db, FEED_COLLECTION),
+            where("userId", "==", userId),
+            where("action", "==", "wishlist_public"),
+            where("cardId", "==", card.id)
+        );
+        const snap = await getDocs(existing);
+        if (!snap.empty) return; // ya está publicado
+
+        await addDoc(collection(db, FEED_COLLECTION), {
+            userId,
+            userName: userName || "Coleccionista",
+            userPhoto: userPhoto || `https://ui-avatars.com/api/?name=${userName}&background=random`,
+            action: "wishlist_public",
+            cardId: card.id,
+            cardName: card.name || null,
+            cardNumber: card.number || "",
+            cardRarity: card.rarity || "",
+            cardSetName: card.set?.name || card.setName || "",
+            cardImage: card.images?.small || card.image || null,
+            cardPriceData: card.tcgplayer || null,
+            timestamp: serverTimestamp()
+        });
+    } catch (error) {
+        console.error("Error posting wishlist to feed:", error);
+    }
+};
+
+// 🗑️ Retirar wishlist del feed comunitario
+export const removeWishlistPublic = async (userId, cardId) => {
+    try {
+        const q = query(
+            collection(db, FEED_COLLECTION),
+            where("userId", "==", userId),
+            where("action", "==", "wishlist_public"),
+            where("cardId", "==", cardId)
+        );
+        const snap = await getDocs(q);
+        const batch = writeBatch(db);
+        snap.forEach(d => batch.delete(doc(db, FEED_COLLECTION, d.id)));
+        await batch.commit();
+    } catch (error) {
+        console.error("Error removing wishlist from feed:", error);
     }
 };

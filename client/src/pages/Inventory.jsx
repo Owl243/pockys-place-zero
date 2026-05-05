@@ -43,11 +43,10 @@ export default function Inventory() {
         if (!user) return;
         const newStatus = !card.forSale;
         await saveCard(user.uid, card, { ...card, forSale: newStatus });
-        
         if (newStatus) {
-            await postToFeed(user.uid, user.displayName || user.email.split("@")[0], user.photoURL, 'sale', card);
+            await postToFeed(user.uid, user.displayName || user.email.split("@")[0], user.photoURL, 'sale', card, user);
         } else {
-            await postToFeed(user.uid, user.displayName || user.email.split("@")[0], user.photoURL, 'sale_finished', card);
+            await postToFeed(user.uid, user.displayName || user.email.split("@")[0], user.photoURL, 'sale_finished', card, user);
         }
 
         showToast(newStatus ? `${card.name} puesta en venta` : `${card.name} retirada de venta`, newStatus ? "error" : "success");

@@ -1,4 +1,4 @@
-import { useLocation, Routes, Route, Navigate, Link } from "react-router-dom";
+import { useLocation, Routes, Route, Navigate } from "react-router-dom";
 
 import { useEffect, useState } from "react";
 import { auth } from "./firebase";
@@ -16,13 +16,15 @@ import Profile from "./pages/Profile";
 import Feed from "./pages/Feed";
 import Chats from "./pages/Chats";
 import Auth from "./pages/Auth";
+import PublicFeed from "./pages/PublicFeed";
+import Welcome from "./pages/Welcome";
+import Privacy from "./pages/Privacy";
+import Terms from "./pages/Terms";
 
 import { listenNotifications } from "./services/notificationService";
 
 export default function AppContent() {
     const location = useLocation();
-
-    const hideNavbar = location.pathname === "/auth";
 
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -52,21 +54,32 @@ export default function AppContent() {
     }, [user]);
 
     if (loading) {
-        return <p className="text-center mt-5">Cargando app...</p>;
+        return (
+            <div className="d-flex align-items-center justify-content-center" style={{ minHeight: '100vh' }}>
+                <div className="spinner-grow text-emerald" role="status"></div>
+            </div>
+        );
     }
+
+    const hideNavbar = location.pathname === "/auth";
+    const isPublicRoute = location.pathname === "/explore";
 
     return (
         <>
             {!hideNavbar && (
                 <div className="d-none d-lg-block">
-                    <Navbar onToggleNotifs={() => setShowNotifs(!showNotifs)} notifCount={notifCount} />
+                    <Navbar
+                        user={user}
+                        onToggleNotifs={() => setShowNotifs(!showNotifs)}
+                        notifCount={notifCount}
+                    />
                 </div>
             )}
 
-            {/* Campana de notificaciones flotante para móvil */}
-            {!hideNavbar && (
-                <button 
-                    className="btn btn-dark bg-opacity-80 border-white border-opacity-10 rounded-circle p-2 position-fixed shadow-lg hover-scale-110 transition-all d-lg-none"
+            {/* Campana flotante móvil — solo para usuarios autenticados */}
+            {!hideNavbar && user && (
+                <button
+                    className="btn btn-dark bg-opacity-80 border-white border-opacity-10 rounded-circle p-2 position-fixed shadow-lg transition-all d-lg-none"
                     style={{ top: "20px", right: "20px", width: "45px", height: "45px", zIndex: 900 }}
                     onClick={() => setShowNotifs(!showNotifs)}
                 >
@@ -81,15 +94,24 @@ export default function AppContent() {
 
             <NotificationPanel isOpen={showNotifs} onClose={() => setShowNotifs(false)} />
 
-            <div className="container mt-4 mb-5">
+            <div className={isPublicRoute ? "" : "container mt-4 mb-5"}>
                 <Routes>
-                    <Route
-                        path="/auth"
-                        element={
-                            user ? <Navigate to="/" /> : <Auth />
-                        }
-                    />
-                    <Route path="/" element={user ? <Search /> : <Navigate to="/auth" />} />
+                    {/* ─── Ruta pública ─── */}
+                    <Route path="/" element={<PublicFeed user={user} />} />
+                    <Route path="/explore" element={<PublicFeed user={user} />} />
+
+                    {/* ─── Legal ─── */}
+                    <Route path="/legal/privacy" element={<Privacy />} />
+                    <Route path="/legal/terms" element={<Terms />} />
+
+                    {/* ─── Auth ─── */}
+                    <Route path="/auth" element={user ? <Navigate to="/" /> : <Auth />} />
+
+                    {/* ─── Post-registro onboarding ─── */}
+                    <Route path="/welcome" element={user ? <Welcome /> : <Navigate to="/auth" />} />
+
+                    {/* ─── Rutas protegidas ─── */}
+                    <Route path="/search" element={user ? <Search /> : <Navigate to="/auth" />} />
                     <Route path="/inventory" element={user ? <Inventory /> : <Navigate to="/auth" />} />
                     <Route path="/wishlist" element={user ? <Wishlist /> : <Navigate to="/auth" />} />
                     <Route path="/notifications" element={user ? <Notifications /> : <Navigate to="/auth" />} />
@@ -99,7 +121,7 @@ export default function AppContent() {
                 </Routes>
             </div>
 
-            {!hideNavbar && <MobileNavbar />}
+            {!hideNavbar && <MobileNavbar user={user} />}
         </>
     );
 }

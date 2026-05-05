@@ -75,6 +75,14 @@ export const isAdmin = (user) => {
 };
 
 /**
+ * Verifica si un usuario es PRO
+ * (admin también es PRO por defecto)
+ */
+export const isPro = (user) => {
+    return user?.email === "iaan@gmail.com";
+};
+
+/**
  * Escucha la lista de chats de un usuario (o todos si es admin)
  */
 export const listenUserChats = (user, callback) => {

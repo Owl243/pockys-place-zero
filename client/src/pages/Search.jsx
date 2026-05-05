@@ -3,7 +3,7 @@ import { addRequest } from "../services/firebaseService";
 import { auth } from "../firebase";
 import { saveCard, getInventory } from "../services/inventoryService";
 import { useToast } from "../context/ToastContext";
-import { postToFeed } from "../services/feedService";
+import { postToFeed, postWishlistPublic } from "../services/feedService";
 import { useCurrency } from "../context/CurrencyContext";
 import { getPriceRaw, normalizeCardNumber } from "../utils/cardUtils";
 
@@ -175,7 +175,10 @@ export default function Search() {
         await saveCard(user.uid, card, { inInventory: action.inInventory, inWishlist: action.inWishlist, forSale: action.forSale });
         
         if (type === 'sale') {
-            await postToFeed(user.uid, user.displayName || user.email.split("@")[0], user.photoURL, 'sale', card);
+            await postToFeed(user.uid, user.displayName || user.email.split("@")[0], user.photoURL, 'sale', card, user);
+        }
+        if (type === 'wishlist') {
+            await postWishlistPublic(user.uid, user.displayName || user.email.split("@")[0], user.photoURL, card);
         }
 
         const inv = await getInventory(user.uid);
