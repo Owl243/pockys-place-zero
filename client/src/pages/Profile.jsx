@@ -178,7 +178,7 @@ export default function Profile() {
     const { currency, toggleCurrency } = useCurrency();
 
     return (
-        <div className="container py-4">
+        <div className="container-fluid py-2 py-md-4 px-2">
             {/* ... (Cropper Overlay) */}
 
             {/* ✂️ Cropper Overlay */}
@@ -226,11 +226,11 @@ export default function Profile() {
                 </div>
             )}
 
-            <div className="text-center mb-5">
+            <div className="text-center mb-2 mb-md-3">
                 <div
                     className="avatar-container mb-2 mx-auto shadow-2xl"
                     onClick={() => !uploading && fileInputRef.current.click()}
-                    style={{ width: '120px', height: '120px', cursor: 'pointer', position: 'relative' }}
+                    style={{ width: '100px', height: '100px', cursor: 'pointer', position: 'relative' }}
                 >
                     <img
                         src={photoURL || `https://ui-avatars.com/api/?name=${auth.currentUser?.displayName || 'User'}&background=10b981&color=fff&size=128`}
@@ -285,11 +285,11 @@ export default function Profile() {
                 <p className="text-emerald opacity-75 small fw-bold tracking-wide">{auth.currentUser?.email}</p>
             </div>
 
-            <div className="bg-dark bg-opacity-40 p-4 rounded-4 border border-white border-opacity-5 mb-4 shadow-xl">
-                <div className="mb-4">
-                    <h6 className="text-white fw-bold mb-1">Tu Rol en Pocky's</h6>
-                    <p className="text-light-muted small mb-3">Cambia tu enfoque para personalizar tu experiencia y colores.</p>
-                    <div className="d-flex gap-2 flex-wrap">
+            <div className="bg-dark bg-opacity-40 p-3 p-md-4 rounded-4 border border-white border-opacity-5 mb-3 mb-md-4 shadow-xl">
+                <div className="mb-3 mb-md-4">
+                    <h6 className="text-white fw-bold mb-1 small">Tu Rol en Pocky's</h6>
+                    <p className="text-light-muted extra-small mb-2">Cambia tu enfoque para personalizar tu experiencia y colores.</p>
+                    <div className="d-flex gap-1 gap-md-2 flex-wrap">
                         {[
                             { id: 'inventory', label: 'Coleccionista', color: '#3b82f6', icon: 'bi-box-seam' },
                             { id: 'sell', label: 'Vendedor', color: '#10b981', icon: 'bi-tag' },
@@ -298,97 +298,102 @@ export default function Profile() {
                             <button
                                 key={r.id}
                                 className={`btn btn-sm rounded-pill fw-bold transition-all ${userRole === r.id ? 'text-white shadow-emerald' : 'bg-black bg-opacity-20 text-white-50 border border-white border-opacity-10'}`}
-                                style={{ backgroundColor: userRole === r.id ? r.color : 'transparent', borderColor: userRole === r.id ? r.color : '' }}
+                                style={{ backgroundColor: userRole === r.id ? r.color : 'transparent', borderColor: userRole === r.id ? r.color : '', fontSize: '0.8rem', padding: '0.4rem 0.8rem' }}
                                 onClick={() => handleRoleChange(r.id)}
                             >
-                                <i className={`bi ${r.icon} me-2`}></i>{r.label}
+                                <i className={`bi ${r.icon} me-1`}></i><span className="d-none d-sm-inline">{r.label}</span>
                             </button>
                         ))}
                     </div>
                 </div>
 
-                <hr className="border-white border-opacity-10 my-4" />
+                <hr className="border-white border-opacity-10 my-2 my-md-3" />
 
-                <div className="d-flex justify-content-between align-items-center mb-4">
+                <div className="d-flex justify-content-between align-items-center mb-3 mb-md-4 flex-column flex-md-row gap-2">
                     <div>
-                        <h6 className="text-white fw-bold mb-0">Precios y Moneda</h6>
-                        <p className="text-light-muted small mb-0">Elige cómo ver los precios</p>
+                        <h6 className="text-white fw-bold mb-0 small">Precios y Moneda</h6>
+                        <p className="text-light-muted extra-small mb-0">Elige cómo ver los precios</p>
                     </div>
-                    <div className="btn-group rounded-pill overflow-hidden border border-white border-opacity-10 p-1 bg-black bg-opacity-20 shadow-inner" style={{ minWidth: '160px' }}>
+                    <div className="btn-group rounded-pill overflow-hidden border border-white border-opacity-10 p-1 bg-black bg-opacity-20 shadow-inner" style={{ minWidth: '140px' }}>
                         <button
-                            className={`btn btn-sm px-4 rounded-pill border-0 fw-bold transition-all duration-300 ${currency === 'USD' ? 'btn-emerald text-white shadow-emerald' : 'text-white-50 opacity-50'}`}
+                            className={`btn btn-sm px-2 px-md-3 rounded-pill border-0 fw-bold transition-all duration-300 ${currency === 'USD' ? 'btn-emerald text-white shadow-emerald' : 'text-white-50 opacity-50'}`}
                             onClick={() => currency !== 'USD' && toggleCurrency()}
+                            style={{ fontSize: '0.8rem' }}
                         >
                             USD
                         </button>
                         <button
-                            className={`btn btn-sm px-4 rounded-pill border-0 fw-bold transition-all duration-300 ${currency === 'MXN' ? 'btn-emerald text-white shadow-emerald' : 'text-white-50 opacity-50'}`}
+                            className={`btn btn-sm px-2 px-md-3 rounded-pill border-0 fw-bold transition-all duration-300 ${currency === 'MXN' ? 'btn-emerald text-white shadow-emerald' : 'text-white-50 opacity-50'}`}
                             onClick={() => currency !== 'MXN' && toggleCurrency()}
+                            style={{ fontSize: '0.8rem' }}
                         >
                             MXN
                         </button>
                     </div>
                 </div>
 
-                <hr className="border-white border-opacity-10 my-4" />
+                <hr className="border-white border-opacity-10 my-2 my-md-3" />
 
-                <div className="mb-2">
-                    <h6 className="text-white fw-bold mb-1">Medios de Entrega (Ventas)</h6>
-                    <p className="text-light-muted small mb-3">Tus ventas aparecerán con estos iconos en el feed para que los compradores sepan cómo entregas.</p>
+                <div className="mb-2 mb-md-3">
+                    <h6 className="text-white fw-bold mb-1 small">Medios de Entrega (Ventas)</h6>
+                    <p className="text-light-muted extra-small mb-2">Tus ventas aparecerán con estos iconos en el feed para que los compradores sepan cómo entregas.</p>
 
-                    <div className="d-flex gap-2 flex-wrap">
+                    <div className="d-flex gap-1 gap-md-2 flex-wrap">
                         <button
                             className={`btn btn-sm rounded-pill fw-bold transition-all ${deliveryPrefs.includes('Envío') ? 'btn-emerald text-white shadow-emerald' : 'bg-black bg-opacity-20 text-white-50 border border-white border-opacity-10'}`}
                             onClick={() => toggleDeliveryPref('Envío')}
                             disabled={savingPrefs}
+                            style={{ fontSize: '0.8rem', padding: '0.4rem 0.8rem' }}
                         >
-                            <i className="bi bi-box-seam me-2"></i>Envío
+                            <i className="bi bi-box-seam me-1 d-none d-sm-inline"></i><span className="d-none d-sm-inline">Envío</span><span className="d-sm-none">Envío</span>
                         </button>
                         <button
                             className={`btn btn-sm rounded-pill fw-bold transition-all ${deliveryPrefs.includes('Blanquita/Frikiplaza') ? 'btn-emerald text-white shadow-emerald' : 'bg-black bg-opacity-20 text-white-50 border border-white border-opacity-10'}`}
                             onClick={() => toggleDeliveryPref('Blanquita/Frikiplaza')}
                             disabled={savingPrefs}
+                            style={{ fontSize: '0.8rem', padding: '0.4rem 0.8rem' }}
                         >
-                            <i className="bi bi-geo-alt-fill me-2"></i>Blanquita
+                            <i className="bi bi-geo-alt-fill me-1 d-none d-sm-inline"></i><span className="d-none d-sm-inline">Blanquita</span><span className="d-sm-none">B.</span>
                         </button>
                         <button
                             className={`btn btn-sm rounded-pill fw-bold transition-all ${deliveryPrefs.includes('Metro (CDMX)') ? 'btn-emerald text-white shadow-emerald' : 'bg-black bg-opacity-20 text-white-50 border border-white border-opacity-10'}`}
                             onClick={() => toggleDeliveryPref('Metro (CDMX)')}
                             disabled={savingPrefs}
+                            style={{ fontSize: '0.8rem', padding: '0.4rem 0.8rem' }}
                         >
-                            <i className="bi bi-train-front me-2"></i>Metro (CDMX)
+                            <i className="bi bi-train-front me-1 d-none d-sm-inline"></i><span className="d-none d-sm-inline">Metro</span><span className="d-sm-none">M.</span>
                         </button>
                     </div>
                 </div>
             </div>
 
-            <div className="row text-center mb-5 g-4">
-                <div className="col-4">
-                    <div className="p-3 bg-dark bg-opacity-40 rounded-4 border border-white border-opacity-5">
-                        <h4 className="fw-bold text-emerald mb-0">{stats.inventory}</h4>
-                        <small className="text-light-muted">Colección</small>
+            <div className="row text-center mb-3 mb-md-4 g-2 g-md-3">
+                <div className="col-4 col-md-3 mx-auto">
+                    <div className="p-2 p-md-3 bg-dark bg-opacity-40 rounded-3 border border-white border-opacity-5">
+                        <h5 className="fw-bold text-emerald mb-0">{stats.inventory}</h5>
+                        <small className="text-light-muted small">Colección</small>
                     </div>
                 </div>
-                <div className="col-4">
-                    <div className="p-3 bg-dark bg-opacity-40 rounded-4 border border-white border-opacity-5">
-                        <h4 className="fw-bold text-pink mb-0">{stats.wishlist}</h4>
-                        <small className="text-light-muted">Wishlist</small>
+                <div className="col-4 col-md-3 mx-auto">
+                    <div className="p-2 p-md-3 bg-dark bg-opacity-40 rounded-3 border border-white border-opacity-5">
+                        <h5 className="fw-bold text-pink mb-0">{stats.wishlist}</h5>
+                        <small className="text-light-muted small">Wishlist</small>
                     </div>
                 </div>
-                <div className="col-4">
-                    <div className="p-3 bg-dark bg-opacity-40 rounded-4 border border-white border-opacity-5">
-                        <h4 className="fw-bold text-danger mb-0">{stats.selling}</h4>
-                        <small className="text-light-muted">Ventas</small>
+                <div className="col-4 col-md-3 mx-auto">
+                    <div className="p-2 p-md-3 bg-dark bg-opacity-40 rounded-3 border border-white border-opacity-5">
+                        <h5 className="fw-bold text-danger mb-0">{stats.selling}</h5>
+                        <small className="text-light-muted small">Ventas</small>
                     </div>
                 </div>
             </div>
 
-            <div className="d-grid gap-3 mx-auto" style={{ maxWidth: '400px' }}>
-                <button className="btn btn-emerald py-3 rounded-4 fw-bold text-white shadow-emerald" onClick={() => setEditing(true)}>
-                    <i className="bi bi-pencil-square me-2"></i> Editar Nombre
+            <div className="d-grid gap-2 mx-auto" style={{ maxWidth: '350px' }}>
+                <button className="btn btn-emerald py-2 rounded-3 fw-bold text-white shadow-emerald" onClick={() => setEditing(true)}>
+                    <i className="bi bi-pencil-square me-1"></i><span className="d-none d-sm-inline">Editar Nombre</span><span className="d-sm-none">Editar</span>
                 </button>
-                <button className="btn btn-outline-secondary py-3 rounded-4 fw-bold text-white border-opacity-25" onClick={handleLogout}>
-                    <i className="bi bi-box-arrow-right me-2"></i> Cerrar Sesión
+                <button className="btn btn-outline-secondary py-2 rounded-3 fw-bold text-white border-opacity-25" onClick={handleLogout}>
+                    <i className="bi bi-box-arrow-right me-1"></i><span className="d-none d-sm-inline">Cerrar Sesión</span><span className="d-sm-none">Salir</span>
                 </button>
             </div>
         </div>
