@@ -34,18 +34,52 @@
   }
 }
 
-/* 🌈 Dynamic Theme Utilities */
-.text-emerald { color: var(--pocky-primary) !important; }
-.btn-emerald { background: var(--pocky-primary) !important; border: none; color: white; transition: all 0.3s; }
-.btn-emerald:hover { filter: brightness(1.1); transform: translateY(-1px); box-shadow: 0 4px 15px var(--pocky-glow); }
-.border-emerald { border-color: var(--pocky-primary) !important; }
+/* 🌈 Dynamic Theme Utilities & Global Overrides */
+.text-emerald, .text-primary { color: var(--pocky-primary) !important; }
+.btn-emerald, .btn-primary { background: var(--pocky-primary) !important; border: none; color: white; transition: all 0.3s; }
+.btn-emerald:hover, .btn-primary:hover { filter: brightness(1.1); transform: translateY(-1px); box-shadow: 0 4px 15px var(--pocky-glow); }
+.border-emerald, .border-primary { border-color: var(--pocky-primary) !important; }
+.bg-emerald, .bg-primary { background-color: var(--pocky-primary) !important; }
+.active-emerald { color: var(--pocky-primary) !important; }
+
+/* 💗 Dinamismo para Wishlist (Pink se adapta o se mantiene como acento) */
+.text-pink { color: #ff4b91 !important; }
+.btn-pink { background: #ff4b91 !important; color: white; border: none; }
+.btn-pink:hover { background: #e63e7d; }
+.bg-pink { background-color: #ff4b91 !important; }
+.border-pink { border-color: rgba(255, 75, 145, 0.3) !important; }
+
+/* 🧊 Glassmorphism Adaptativo */
+.glass-card {
+    background: rgba(var(--pocky-primary-rgb), 0.03);
+    border: 1px solid rgba(var(--pocky-primary-rgb), 0.15);
+    backdrop-filter: blur(12px);
+    border-radius: 1rem;
+}
+
 .shadow-emerald { box-shadow: 0 0 20px var(--pocky-glow); }
 .shadow-emerald-sm { box-shadow: 0 0 10px rgba(var(--pocky-primary-rgb), 0.15); }
-.bg-emerald { background-color: var(--pocky-primary) !important; }
-.active-emerald { color: var(--pocky-primary) !important; }
+
+/* Custom Scrollbar */
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { 
+    background: rgba(var(--pocky-primary-rgb), 0.2); 
+    border-radius: 10px; 
+}
+::-webkit-scrollbar-thumb:hover { 
+    background: var(--pocky-primary); 
+}
+
+/* selection */
+::selection {
+    background: rgba(var(--pocky-primary-rgb), 0.3);
+    color: white;
+}
 
 body {
   margin: 0;
+  background-color: var(--bg);
 }
 
 #root {
@@ -128,7 +162,7 @@ code {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    border: 3px solid var(--accent);
+    border: 3px solid var(--pocky-primary);
     transition: all 0.3s ease;
 }
 

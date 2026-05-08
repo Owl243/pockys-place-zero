@@ -65,7 +65,7 @@ export default function Welcome() {
         } catch (e) {
             console.error("Error updating intent:", e);
         }
-        navigate(selected.route);
+        navigate("/");
     };
 
     return (

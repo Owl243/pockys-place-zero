@@ -67,7 +67,7 @@ function SaleCard({ item, onInteract, user }) {
     };
 
     return (
-        <div className="rounded-4 overflow-hidden h-100 position-relative" style={{ background: "rgba(16,185,129,0.04)", border: "1px solid rgba(16,185,129,0.18)", boxShadow: "0 4px 20px rgba(0,0,0,0.2)", transition: "all 0.2s" }}>
+        <div className="glass-card overflow-hidden h-100 position-relative" style={{ transition: "all 0.2s" }}>
             <div className="p-3 d-flex align-items-center justify-content-center" style={{ background: "rgba(0,0,0,0.3)", minHeight: "160px" }}>
                 <img src={item.cardImage || (item.images?.small)} alt={item.cardName || item.name} style={{ height: "120px", objectFit: "contain", filter: "drop-shadow(0 8px 16px rgba(0,0,0,0.5))" }} />
                 {item.isPro && <span className="position-absolute top-0 end-0 m-2 badge rounded-pill fw-bold" style={{ background: "linear-gradient(135deg,#f59e0b,#f97316)", fontSize: "0.6rem" }}>⭐ PRO</span>}
