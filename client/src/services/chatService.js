@@ -83,23 +83,18 @@ export const isPro = (user) => {
 };
 
 /**
- * Escucha la lista de chats de un usuario (o todos si es admin)
+ * Escucha la lista de chats de un usuario
  */
 export const listenUserChats = (user, callback) => {
-    let q;
-    
-    if (isAdmin(user)) {
-        // El admin ve TODO
-        q = query(
-            collection(db, "chats")
-        );
-    } else {
-        // Usuario normal solo ve sus chats (SIN orderBy para evitar el error de índice)
-        q = query(
-            collection(db, "chats"),
-            where("participants", "array-contains", user.uid)
-        );
+    if (!user?.uid) {
+        callback([]);
+        return () => {};
     }
+
+    const q = query(
+        collection(db, "chats"),
+        where("participants", "array-contains", user.uid)
+    );
 
     return onSnapshot(q, (snapshot) => {
         const chats = snapshot.docs.map(doc => ({
@@ -117,6 +112,7 @@ export const listenUserChats = (user, callback) => {
         callback(chats);
     }, (error) => {
         console.error("Error escuchando chats:", error);
+        callback([]);
     });
 };
 

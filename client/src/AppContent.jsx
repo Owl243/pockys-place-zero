@@ -1,35 +1,32 @@
 import { useLocation, Routes, Route, Navigate } from "react-router-dom";
-
 import { useEffect, useState } from "react";
-import { auth } from "./firebase";
+import { auth, db } from "./firebase";
 import { onAuthStateChanged } from "firebase/auth";
+import { doc, onSnapshot } from "firebase/firestore";
 
 import Navbar from "./components/Navbar";
 import MobileNavbar from "./components/MobileNavbar";
 import NotificationPanel from "./components/NotificationPanel";
 
-import Search from "./pages/Search";
-import Inventory from "./pages/Inventory";
-import Wishlist from "./pages/Wishlist";
-import Notifications from "./pages/Notifications";
 import Profile from "./pages/Profile";
-import Feed from "./pages/Feed";
-import Chats from "./pages/Chats";
 import Auth from "./pages/Auth";
 import PublicFeed from "./pages/PublicFeed";
 import Welcome from "./pages/Welcome";
 import Privacy from "./pages/Privacy";
 import Terms from "./pages/Terms";
+import Collection from "./pages/Collection";
+import Activity from "./pages/Activity";
 
 import { listenNotifications } from "./services/notificationService";
+import { listenUserChats } from "./services/chatService";
 
 export default function AppContent() {
     const location = useLocation();
 
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
-    const [showNotifs, setShowNotifs] = useState(false);
     const [notifCount, setNotifCount] = useState(0);
+    const [unreadChats, setUnreadChats] = useState(0);
 
     useEffect(() => {
         const unsub = onAuthStateChanged(auth, (u) => {
@@ -41,16 +38,44 @@ export default function AppContent() {
 
     useEffect(() => {
         let unsubNotifs = () => {};
+        let unsubChats = () => {};
+
         if (user) {
-            try {
-                unsubNotifs = listenNotifications(user.uid, (data) => {
-                    setNotifCount(data.filter(n => !n.read).length);
-                });
-            } catch (err) {
-                console.error("Error listening to notifications:", err);
-            }
+            unsubNotifs = listenNotifications(user.uid, (data) => {
+                setNotifCount(data.filter(n => !n.read).length);
+            });
+            unsubChats = listenUserChats(user, (data) => {
+                setUnreadChats(data.filter(c => c.unread?.[user.uid]).length);
+            });
         }
-        return () => unsubNotifs();
+        return () => { unsubNotifs(); unsubChats(); };
+    }, [user]);
+
+    const totalUnread = notifCount + unreadChats;
+
+    useEffect(() => {
+        if (!user) return;
+        const unsub = onSnapshot(doc(db, "users", user.uid), (snap) => {
+            if (snap.exists()) {
+                const data = snap.data();
+                const role = data.intentType || "sell";
+                
+                // Configuración de temas por rol
+                const themes = {
+                    inventory: { primary: "#3b82f6", rgb: "59, 130, 246" }, // Coleccionista - Azul
+                    sell: { primary: "#10b981", rgb: "16, 185, 129" },      // Vendedor - Esmeralda
+                    buy: { primary: "#f59e0b", rgb: "245, 158, 11" }        // Comprador - Ámbar
+                };
+
+                const selected = themes[role] || themes.sell;
+                
+                // Inyectar variables en el :root
+                document.documentElement.style.setProperty('--pocky-primary', selected.primary);
+                document.documentElement.style.setProperty('--pocky-primary-rgb', selected.rgb);
+                document.documentElement.style.setProperty('--pocky-glow', `rgba(${selected.rgb}, 0.35)`);
+            }
+        });
+        return () => unsub();
     }, [user]);
 
     if (loading) {
@@ -61,8 +86,7 @@ export default function AppContent() {
         );
     }
 
-    const hideNavbar = location.pathname === "/auth";
-    const isPublicRoute = location.pathname === "/explore";
+    const hideNavbar = ["/auth", "/welcome"].includes(location.pathname);
 
     return (
         <>
@@ -70,35 +94,19 @@ export default function AppContent() {
                 <div className="d-none d-lg-block">
                     <Navbar
                         user={user}
-                        onToggleNotifs={() => setShowNotifs(!showNotifs)}
-                        notifCount={notifCount}
+                        totalUnread={totalUnread}
                     />
                 </div>
             )}
 
-            {/* Campana flotante móvil — solo para usuarios autenticados */}
-            {!hideNavbar && user && (
-                <button
-                    className="btn btn-dark bg-opacity-80 border-white border-opacity-10 rounded-circle p-2 position-fixed shadow-lg transition-all d-lg-none"
-                    style={{ top: "20px", right: "20px", width: "45px", height: "45px", zIndex: 900 }}
-                    onClick={() => setShowNotifs(!showNotifs)}
-                >
-                    <i className="bi bi-bell-fill text-warning fs-5"></i>
-                    {notifCount > 0 && (
-                        <span className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-warning text-dark fw-bold border border-dark border-2" style={{ fontSize: '0.65rem' }}>
-                            {notifCount}
-                        </span>
-                    )}
-                </button>
-            )}
-
-            <NotificationPanel isOpen={showNotifs} onClose={() => setShowNotifs(false)} />
-
-            <div className={isPublicRoute ? "" : "container mt-4 mb-5"}>
+            <div className="container mt-2 mt-md-4 mb-5">
                 <Routes>
-                    {/* ─── Ruta pública ─── */}
+                    {/* ─── Rutas públicas ─── */}
                     <Route path="/" element={<PublicFeed user={user} />} />
+                    <Route path="/feed" element={<Navigate to="/" />} />
+                    <Route path="/chats" element={<Navigate to="/activity" />} />
                     <Route path="/explore" element={<PublicFeed user={user} />} />
+                    <Route path="/tcg" element={<PublicFeed user={user} />} />
 
                     {/* ─── Legal ─── */}
                     <Route path="/legal/privacy" element={<Privacy />} />
@@ -111,17 +119,13 @@ export default function AppContent() {
                     <Route path="/welcome" element={user ? <Welcome /> : <Navigate to="/auth" />} />
 
                     {/* ─── Rutas protegidas ─── */}
-                    <Route path="/search" element={user ? <Search /> : <Navigate to="/auth" />} />
-                    <Route path="/inventory" element={user ? <Inventory /> : <Navigate to="/auth" />} />
-                    <Route path="/wishlist" element={user ? <Wishlist /> : <Navigate to="/auth" />} />
-                    <Route path="/notifications" element={user ? <Notifications /> : <Navigate to="/auth" />} />
+                    <Route path="/collection" element={user ? <Collection /> : <Navigate to="/auth" />} />
+                    <Route path="/activity" element={user ? <Activity /> : <Navigate to="/auth" />} />
                     <Route path="/profile" element={user ? <Profile /> : <Navigate to="/auth" />} />
-                    <Route path="/feed" element={user ? <Feed /> : <Navigate to="/auth" />} />
-                    <Route path="/chats" element={user ? <Chats /> : <Navigate to="/auth" />} />
                 </Routes>
             </div>
 
-            {!hideNavbar && <MobileNavbar user={user} />}
+            {!hideNavbar && <MobileNavbar user={user} totalUnread={totalUnread} />}
         </>
     );
 }

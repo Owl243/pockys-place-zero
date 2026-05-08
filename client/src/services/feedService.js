@@ -39,6 +39,32 @@ export const updateUserInFeed = async (userId, updates) => {
 // 📝 Crear una publicación en el feed
 export const postToFeed = async (userId, userName, userPhoto, action, card, userObj = null) => {
     try {
+        // 1. Evitar duplicados en ventas: si ya hay una venta activa para este usuario y esta carta, no publicar
+        if (action === 'sale') {
+            const q = query(
+                collection(db, FEED_COLLECTION),
+                where("userId", "==", userId),
+                where("action", "==", "sale"),
+                where("cardId", "==", card.id)
+            );
+            const snap = await getDocs(q);
+            if (!snap.empty) return;
+        }
+
+        // 2. Si es una venta finalizada, limpiar los anuncios de venta anteriores de esa carta
+        if (action === 'sale_finished') {
+            const q = query(
+                collection(db, FEED_COLLECTION),
+                where("userId", "==", userId),
+                where("action", "==", "sale"),
+                where("cardId", "==", card.id)
+            );
+            const snap = await getDocs(q);
+            const batch = writeBatch(db);
+            snap.forEach(d => batch.delete(doc(db, FEED_COLLECTION, d.id)));
+            await batch.commit();
+        }
+
         let deliveryPrefs = [];
         try {
             const userDoc = await getDoc(doc(db, "users", userId));
@@ -56,12 +82,13 @@ export const postToFeed = async (userId, userName, userPhoto, action, card, user
             isPro: userObj ? isPro(userObj) : false,
             deliveryPrefs,
             action,
+            cardId: card.id,
             cardName: card?.name || null,
             cardNumber: card?.number || "",
             cardRarity: card?.rarity || "",
             cardSetName: card?.set?.name || card?.setName || "",
-            cardImage: card?.images?.small || card?.image || null,
-            cardPriceData: card?.tcgplayer || null,
+            cardImage: card?.images?.small || card?.image || card?.cardImage || null,
+            cardPriceData: card?.tcgplayer || card?.cardPriceData || null,
             timestamp: serverTimestamp(),
             message: action === 'sale' ? `ha puesto en venta a ${card.name}!` : 
                      action === 'sale_finished' ? `ha finalizado la venta de ${card.name}` : null
@@ -126,13 +153,14 @@ export const postWishlistPublic = async (userId, userName, userPhoto, card) => {
             userName: userName || "Coleccionista",
             userPhoto: userPhoto || `https://ui-avatars.com/api/?name=${userName}&background=random`,
             action: "wishlist_public",
+            message: `está buscando a ${card.name}`,
             cardId: card.id,
             cardName: card.name || null,
             cardNumber: card.number || "",
             cardRarity: card.rarity || "",
             cardSetName: card.set?.name || card.setName || "",
-            cardImage: card.images?.small || card.image || null,
-            cardPriceData: card.tcgplayer || null,
+            cardImage: card.images?.small || card.image || card.cardImage || null,
+            cardPriceData: card.tcgplayer || card.cardPriceData || null,
             timestamp: serverTimestamp()
         });
     } catch (error) {

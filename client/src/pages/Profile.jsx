@@ -27,6 +27,7 @@ export default function Profile() {
     });
     const [deliveryPrefs, setDeliveryPrefs] = useState([]);
     const [savingPrefs, setSavingPrefs] = useState(false);
+    const [userRole, setUserRole] = useState("sell");
 
     // Cropping states
     const [image, setImage] = useState(null);
@@ -55,6 +56,7 @@ export default function Profile() {
                 const userDoc = await getDoc(doc(db, "users", user.uid));
                 if (userDoc.exists()) {
                     setDeliveryPrefs(userDoc.data().deliveryPrefs || []);
+                    setUserRole(userDoc.data().intentType || "sell");
                 }
             } catch (err) {
                 console.error("Error fetching user data:", err);
@@ -102,6 +104,20 @@ export default function Profile() {
             setDeliveryPrefs(deliveryPrefs);
         } finally {
             setSavingPrefs(false);
+        }
+    };
+
+    const handleRoleChange = async (newRole) => {
+        const user = auth.currentUser;
+        if (!user) return;
+        setUserRole(newRole);
+        try {
+            await setDoc(doc(db, "users", user.uid), {
+                intentType: newRole
+            }, { merge: true });
+            showToast(`Rol cambiado a ${newRole === 'inventory' ? 'Coleccionista' : newRole === 'sell' ? 'Vendedor' : 'Comprador'}`, "success");
+        } catch (err) {
+            showToast("Error al cambiar rol", "error");
         }
     };
 
@@ -270,6 +286,29 @@ export default function Profile() {
             </div>
 
             <div className="bg-dark bg-opacity-40 p-4 rounded-4 border border-white border-opacity-5 mb-4 shadow-xl">
+                <div className="mb-4">
+                    <h6 className="text-white fw-bold mb-1">Tu Rol en Pocky's</h6>
+                    <p className="text-light-muted small mb-3">Cambia tu enfoque para personalizar tu experiencia y colores.</p>
+                    <div className="d-flex gap-2 flex-wrap">
+                        {[
+                            { id: 'inventory', label: 'Coleccionista', color: '#3b82f6', icon: 'bi-box-seam' },
+                            { id: 'sell', label: 'Vendedor', color: '#10b981', icon: 'bi-tag' },
+                            { id: 'buy', label: 'Comprador', color: '#f59e0b', icon: 'bi-bag-heart' }
+                        ].map(r => (
+                            <button
+                                key={r.id}
+                                className={`btn btn-sm rounded-pill fw-bold transition-all ${userRole === r.id ? 'text-white shadow-emerald' : 'bg-black bg-opacity-20 text-white-50 border border-white border-opacity-10'}`}
+                                style={{ backgroundColor: userRole === r.id ? r.color : 'transparent', borderColor: userRole === r.id ? r.color : '' }}
+                                onClick={() => handleRoleChange(r.id)}
+                            >
+                                <i className={`bi ${r.icon} me-2`}></i>{r.label}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
+                <hr className="border-white border-opacity-10 my-4" />
+
                 <div className="d-flex justify-content-between align-items-center mb-4">
                     <div>
                         <h6 className="text-white fw-bold mb-0">Precios y Moneda</h6>

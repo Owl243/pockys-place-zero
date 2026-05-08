@@ -77,7 +77,7 @@ export const notifyWishlistUsers = async (sellerId, card) => {
                     message: `Alguien puso en venta a ${card.name}, ¡está en tu wishlist!`,
                     cardImage: card.images?.small || card.image || "",
                     cardId: card.id,
-                    link: '/feed'
+                    link: '/'
                 }));
             }
         });
