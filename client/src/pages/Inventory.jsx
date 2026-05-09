@@ -124,13 +124,9 @@ export default function Inventory() {
             )}
             
             <style>{`
-                .text-emerald { color: #10b981 !important; }
-                .btn-outline-emerald { border: 2px solid #10b981; color: #10b981 !important; background: transparent; }
-                .btn-outline-emerald:hover { background-color: #10b981; color: white !important; }
-                .drop-shadow-card { filter: drop-shadow(0 10px 15px rgba(0,0,0,0.5)) drop-shadow(0 0 10px rgba(16, 185, 129, 0.2)); }
-                .shadow-emerald { box-shadow: 0 0 20px rgba(16, 185, 129, 0.25); }
+                .drop-shadow-card { filter: drop-shadow(0 10px 15px rgba(0,0,0,0.5)) drop-shadow(0 0 10px rgba(var(--pocky-primary-rgb), 0.2)); }
                 .shadow-danger-sm { box-shadow: 0 0 10px rgba(220, 53, 69, 0.3); }
-                .hover-translate-y-n2:hover { transform: translateY(-8px); box-shadow: 0 15px 30px rgba(16, 185, 129, 0.15); }
+                .hover-translate-y-n2:hover { transform: translateY(-8px); box-shadow: 0 15px 30px rgba(var(--pocky-primary-rgb), 0.15); }
             `}</style>
         </div>
     );

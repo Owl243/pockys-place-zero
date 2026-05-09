@@ -12,7 +12,7 @@ import { saveCard, getInventory } from "../services/inventoryService";
 import { postToFeed, postWishlistPublic } from "../services/feedService";
 import { addRequest } from "../services/firebaseService";
 
-// ─── Auth Gate Modal ────────────────────────────────────────────────────────
+// ──â”€ Auth Gate Modal ────────────────────────────────────────────────────────
 function AuthGateModal({ onClose, onGoAuth }) {
     return (
         <div
@@ -37,9 +37,9 @@ function AuthGateModal({ onClose, onGoAuth }) {
                         style={{ width: "70px", height: "70px", background: "rgba(var(--pocky-primary-rgb), 0.12)", border: "1px solid rgba(var(--pocky-primary-rgb), 0.3)" }}>
                         <i className="bi bi-lock-fill text-emerald fs-2" />
                     </div>
-                    <h4 className="fw-bold text-white mb-2">Únete a Pocky's Place</h4>
+                    <h4 className="fw-bold text-white mb-2">Ãšnete a Pocky's Place</h4>
                     <p className="text-white mb-0" style={{ opacity: 0.55, fontSize: "0.9rem", lineHeight: 1.6 }}>
-                        Regístrate gratis para comprar, vender y conectar con coleccionistas.
+                        RegÃ­strate gratis para comprar, vender y conectar con coleccionistas.
                     </p>
                 </div>
                 <div className="d-flex flex-column gap-3">
@@ -47,7 +47,7 @@ function AuthGateModal({ onClose, onGoAuth }) {
                         <i className="bi bi-person-plus me-2" />Crear cuenta gratis
                     </button>
                     <button className="btn rounded-pill py-2 text-white" style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.12)", fontSize: "0.9rem" }} onClick={() => onGoAuth("login")}>
-                        Ya tengo cuenta — Iniciar sesión
+                        Ya tengo cuenta â€” Iniciar sesiÃ³n
                     </button>
                 </div>
                 <button className="position-absolute btn p-0 text-white" style={{ top: "16px", right: "16px", opacity: 0.35, lineHeight: 1 }} onClick={onClose}><i className="bi bi-x-lg" /></button>
@@ -56,7 +56,7 @@ function AuthGateModal({ onClose, onGoAuth }) {
     );
 }
 
-// ─── Card Sale Item ──────────────────────────────────────────────────────────
+// ──â”€ Card Sale Item ──────────────────────────────────────────────────────────
 function SaleCard({ item, onInteract, user }) {
     const price = getPriceRaw(item.cardPriceData || item);
     const isMe = user?.uid === item.userId;
@@ -70,7 +70,7 @@ function SaleCard({ item, onInteract, user }) {
         <div className="glass-card overflow-hidden h-100 position-relative" style={{ transition: "all 0.2s" }}>
             <div className="p-3 d-flex align-items-center justify-content-center" style={{ background: "rgba(0,0,0,0.3)", minHeight: "160px" }}>
                 <img src={item.cardImage || (item.images?.small)} alt={item.cardName || item.name} style={{ height: "120px", objectFit: "contain", filter: "drop-shadow(0 8px 16px rgba(0,0,0,0.5))" }} />
-                {item.isPro && <span className="position-absolute top-0 end-0 m-2 badge rounded-pill fw-bold" style={{ background: "linear-gradient(135deg,#f59e0b,#f97316)", fontSize: "0.6rem" }}>⭐ PRO</span>}
+                {item.isPro && <span className="position-absolute top-0 end-0 m-2 badge rounded-pill fw-bold" style={{ background: "linear-gradient(135deg,#f59e0b,#f97316)", fontSize: "0.6rem" }}>â­ PRO</span>}
             </div>
             <div className="p-3 d-flex flex-column gap-1">
                 <p className="fw-bold text-white mb-0 text-truncate" style={{ fontSize: "0.9rem" }}>{item.cardName || item.name}</p>
@@ -96,7 +96,7 @@ function SaleCard({ item, onInteract, user }) {
     );
 }
 
-// ─── Product Card Item (Sellado) ─────────────────────────────────────────────
+// ──â”€ Product Card Item (Sellado) ────────────────────────────────────────────â”€
 function ProductCard({ card, user, onAction, isInInventory, formatPrice }) {
     return (
         <div className="card border-0 rounded-4 overflow-hidden bg-dark bg-opacity-30 border border-white border-opacity-5 shadow-lg d-flex flex-row">
@@ -122,7 +122,7 @@ function ProductCard({ card, user, onAction, isInInventory, formatPrice }) {
     );
 }
 
-// ─── TCG Card Item (Explorar) ────────────────────────────────────────────────
+// ──â”€ TCG Card Item (Explorar) ────────────────────────────────────────────────
 function TCGCard({ card, user, onAction, isInInventory, formatPrice }) {
     const price = getPriceRaw(card);
     return (
@@ -151,7 +151,7 @@ function TCGCard({ card, user, onAction, isInInventory, formatPrice }) {
     );
 }
 
-// ─── Main Component ──────────────────────────────────────────────────────────
+// ──â”€ Main Component ──────────────────────────────────────────────────────────
 export default function PublicFeed({ user }) {
     const navigate = useNavigate();
     const location = useLocation();
@@ -199,7 +199,7 @@ export default function PublicFeed({ user }) {
         return () => unsub();
     }, []);
 
-    // ── Fetch wishlist pública (tendencias) ───────────────────────────────────
+    // ── Fetch wishlist pÃºblica (tendencias) ──────────────────────────────────â”€
     useEffect(() => {
         const q = query(collection(db, "feed"), where("action", "==", "wishlist_public"), orderBy("timestamp", "desc"), limit(40));
         const unsub = onSnapshot(q, snap => {
@@ -233,7 +233,7 @@ export default function PublicFeed({ user }) {
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
 
-    // ── Ejecutar búsqueda TCG ────────────────────────────────────────────────
+    // ── Ejecutar bÃºsqueda TCG ────────────────────────────────────────────────
     const executeTcgSearch = async (page = 1, isNew = true) => {
         if (!tcgQuery && !selectedSet) return;
         setTcgLoading(true);
@@ -245,14 +245,14 @@ export default function PublicFeed({ user }) {
                 const queryPrefix = parts[0];
                 let keywords = parts.slice(1);
 
-                // Mapeo de sinónimos para mejorar la búsqueda (ej: etb -> elite trainer box)
+                // Mapeo de sinÃ³nimos para mejorar la bÃºsqueda (ej: etb -> elite trainer box)
                 const synonyms = {
                     'etb': ['elite', 'trainer', 'box'],
                     'display': ['display', 'box'],
                     'booster': ['booster', 'box']
                 };
 
-                // Expandir palabras clave con sinónimos
+                // Expandir palabras clave con sinÃ³nimos
                 let expandedKeywords = [...keywords];
                 keywords.forEach(k => {
                     if (synonyms[k]) expandedKeywords = [...expandedKeywords, ...synonyms[k]];
@@ -260,7 +260,7 @@ export default function PublicFeed({ user }) {
                 // Eliminar duplicados
                 expandedKeywords = [...new Set(expandedKeywords)];
 
-                // Definir rangos de sets populares para búsqueda multi-set
+                // Definir rangos de sets populares para bÃºsqueda multi-set
                 const setEras = {
                     'sv': [...Array.from({ length: 10 }, (_, i) => `sv${i + 1}`), 'sv3pt5', 'sv4pt5', 'sv6pt5', 'sv8pt5', 'sve', 'svp'],
                     'swsh': [...Array.from({ length: 12 }, (_, i) => `swsh${i + 1}`), 'swsh12pt5', 'swsh12pt5gg', 'swsh9tg', 'swsh10tg', 'swsh11tg', 'swsh12tg', 'swsh35', 'swsh45', 'swsh45sv', 'swshp'],
@@ -287,14 +287,14 @@ export default function PublicFeed({ user }) {
                 };
 
                 // Si el prefijo coincide con una era (ej: "sv"), buscamos en todos esos sets
-                // De lo contrario, solo buscamos en el set específico proporcionado
+                // De lo contrario, solo buscamos en el set especÃ­fico proporcionado
                 const targetSets = setEras[queryPrefix] || [queryPrefix];
 
                 const interestingTypes = ["etb", "elite-trainer-box", "display", "display-box", "booster-box", "booster-pack", "booster-bundle", "v-box", "blister", "elite_trainer_box", "display_box", "booster_bundle"];
 
                 let allProducts = [];
 
-                // Función para buscar en un set específico
+                // FunciÃ³n para buscar en un set especÃ­fico
                 const fetchProductsFromSet = async (setId) => {
                     try {
                         const rootRes = await fetch(`https://api.github.com/repos/1niceroli/ptcg-assets/contents/${setId}`);
@@ -307,7 +307,7 @@ export default function PublicFeed({ user }) {
                             const itemName = item.name.toLowerCase();
                             const normItemName = itemName.replace(/-/g, ' ').replace(/_/g, ' ');
                             
-                            // Excluir logos y símbolos
+                            // Excluir logos y sÃ­mbolos
                             if (itemName.includes('logo') || itemName.includes('symbol')) continue;
 
                             if (item.type === "file" && itemName.endsWith('.png')) {
@@ -358,7 +358,7 @@ export default function PublicFeed({ user }) {
                     } catch (e) { return []; }
                 };
 
-                // Si buscamos en múltiples sets, limitamos el paralelismo para no saturar la API
+                // Si buscamos en mÃºltiples sets, limitamos el paralelismo para no saturar la API
                 if (targetSets.length > 1) {
                     // Buscamos en lotes de 3 para ser amigables con el rate limit de GitHub
                     for (let i = 0; i < targetSets.length; i += 3) {
@@ -374,7 +374,7 @@ export default function PublicFeed({ user }) {
 
                 setTcgCards(allProducts);
             } catch (err) {
-                showToast("Error en la búsqueda de productos", "error");
+                showToast("Error en la bÃºsqueda de productos", "error");
             } finally {
                 setTcgLoading(false);
             }
@@ -400,13 +400,13 @@ export default function PublicFeed({ user }) {
                 setTcgCards(prev => [...prev, ...(data.data || [])]);
             }
         } catch (err) {
-            showToast("Error en la búsqueda TCG", "error");
+            showToast("Error en la bÃºsqueda TCG", "error");
         } finally {
             setTcgLoading(false);
         }
     };
 
-    // ── Ejecutar búsqueda Producto ───────────────────────────────────────────
+    // ── Ejecutar bÃºsqueda Producto ──────────────────────────────────────────â”€
     const executeProductSearch = async () => {
         if (!productQuery) return;
         setProductsLoading(true);
@@ -441,7 +441,7 @@ export default function PublicFeed({ user }) {
         }
     };
 
-    // ── Ejecutar búsqueda inicial o por set ──────────────────────────────────
+    // ── Ejecutar bÃºsqueda inicial o por set ──────────────────────────────────
     useEffect(() => {
         if (selectedSet) {
             executeTcgSearch(1, true);
@@ -467,7 +467,7 @@ export default function PublicFeed({ user }) {
         }
     }, [tcgSort]);
 
-    // ── Autocompletado (Local + API ligera) ───────────────────────────────────
+    // ── Autocompletado (Local + API ligera) ──────────────────────────────────â”€
     useEffect(() => {
         if (searchMode === "name" && tcgQuery.length > 2) {
             const timer = setTimeout(async () => {
@@ -504,14 +504,12 @@ export default function PublicFeed({ user }) {
     const handleInteract = async (item, type) => {
         if (!user) { setShowGate(true); return; }
         if (type === "claim" && item) {
-            const targetUser = { id: item.userId, name: item.userName, photo: item.userPhoto };
-            const chatId = await startChat(user, targetUser, `¡Hola! Me interesa tu carta ${item.cardName || item.name}`);
-            navigate("/activity", { state: { tab: "mensajes", chatId } });
+            navigate("/activity", { state: { openOffer: item } });
         }
     };
 
     return (
-        <div className="pb-5">
+        <div className="pt-2 pt-md-3 pb-5">
 
             {/* ── Tabs ── */}
             <div className="d-flex justify-content-center mb-4">
@@ -550,14 +548,23 @@ export default function PublicFeed({ user }) {
                             <div className="text-center py-5 text-white-50 opacity-50">No hay tendencias en este momento</div>
                         ) : (
                             wishlists.map(item => (
-                                <div key={item.id} className="d-flex align-items-center gap-3 p-3 rounded-4" style={{ background: "rgba(255,75,145,0.04)", border: "1px solid rgba(255,75,145,0.15)" }}>
-                                    {item.cardImage ? <img src={item.cardImage} style={{ width: "40px", height: "56px", objectFit: "contain" }} /> : <div className="bg-pink bg-opacity-10 rounded" style={{ width: "40px", height: "56px" }}></div>}
-                                    <div className="flex-grow-1 min-w-0">
-                                        <p className="fw-bold text-white mb-0 text-truncate" style={{ fontSize: "0.85rem" }}>{item.cardName}</p>
-                                        <p className="text-white-50 extra-small mb-0 opacity-75">{item.cardSetName} • {item.cardNumber}/{item.cardSetTotal}</p>
-                                        <p className="text-white-50 extra-small mb-0 opacity-50">{item.userName} está buscando esto</p>
+<div key={item.id} className="d-flex align-items-stretch gap-3 p-4 rounded-4 shadow-lg position-relative overflow-hidden mb-2" style={{ background: "linear-gradient(145deg, rgba(255, 75, 145, 0.08) 0%, transparent 100%)", border: "1px solid rgba(255,75,145,0.3)" }}>
+                                    <div className="position-absolute top-0 end-0 px-3 py-1 bg-pink text-white fw-bold rounded-bl-3" style={{ fontSize: '0.7rem' }}>Buscando</div>
+                                    <div className="d-flex align-items-center justify-content-center flex-shrink-0">
+                                        {item.cardImage ? <img src={item.cardImage} style={{ width: "80px", height: "113px", objectFit: "contain", filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.4))' }} /> : <div className="bg-pink bg-opacity-10 rounded" style={{ width: "80px", height: "113px" }}></div>}
                                     </div>
-                                    <button className="btn btn-outline-emerald btn-sm rounded-3 px-3 fw-bold" style={{ fontSize: '0.7rem' }} onClick={() => handleInteract(item, "claim")}>Tengo esto</button>
+                                    <div className="flex-grow-1 min-w-0 d-flex flex-column justify-content-between">
+                                        <div className="pt-1">
+                                            <p className="fw-bold text-white mb-1 text-truncate" style={{ fontSize: "1rem" }}>{item.cardName}</p>
+                                            <p className="text-white-50 extra-small mb-1 opacity-75" style={{ fontSize: "0.8rem" }}>{item.cardSetName} • {item.cardNumber}/{item.cardSetTotal}</p>
+                                            <p className="text-white-50 extra-small mb-0 opacity-50"><i className="bi bi-person-fill me-1"></i>{item.userName} busca esto</p>
+                                        </div>
+                                        <div className="d-flex justify-content-end mt-3">
+                                            <button className="btn btn-pink rounded-pill px-4 py-2 fw-bold text-white shadow-sm transition-all hover-scale-105" style={{ fontSize: '0.85rem' }} onClick={() => handleInteract(item, "claim")}>
+                                                <i className="bi bi-bag-check-fill me-2"></i>¡Tengo esto!
+                                            </button>
+                                        </div>
+                                    </div>
                                 </div>
                             ))
                         )}

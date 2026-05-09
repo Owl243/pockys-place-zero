@@ -132,7 +132,7 @@ export default function Collection() {
                                         <div className="card h-100 border-0 rounded-4 overflow-hidden bg-dark bg-opacity-30 border border-white border-opacity-5 shadow-lg">
                                             <div className="p-3 bg-dark bg-opacity-50 d-flex align-items-center justify-content-center position-relative" style={{ height: "180px" }}>
                                                 <img src={card.image} className="img-fluid h-100 object-fit-contain w-100 drop-shadow-card" />
-                                                {publicWishlistIds.has(card.id) && <span className="position-absolute top-0 start-0 m-2 badge bg-info bg-opacity-20 text-info rounded-pill fw-bold" style={{ fontSize: '0.6rem' }}>PÚBLICO</span>}
+                                                {publicWishlistIds.has(card.id) && <span className="position-absolute top-0 start-0 m-2 badge text-info rounded-pill fw-bold border border-info bg-transparent" style={{ fontSize: '0.6rem' }}>PÚBLICO</span>}
                                             </div>
                                             <div className="card-body p-3">
                                                 <h6 className="fw-bold text-white text-truncate small mb-1">{card.name}</h6>
@@ -152,17 +152,12 @@ export default function Collection() {
             </div>
 
             <style>{`
-                .text-emerald { color: #10b981 !important; }
-                .text-pink { color: #ff4b91 !important; }
-                .btn-emerald { background: #10b981; color: white; border: none; }
                 .btn-pink { background: #ff4b91; color: white; border: none; }
                 .btn-outline-pink { border: 1.5px solid #ff4b91; color: #ff4b91; background: transparent; }
                 .shadow-pink-sm { box-shadow: 0 0 15px rgba(255, 75, 145, 0.3); }
-                .animate-fade-in { animation: fadeIn 0.4s ease; }
-                @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
                 .drop-shadow-card { filter: drop-shadow(0 5px 15px rgba(0,0,0,0.5)); }
-                .extra-small { font-size: 0.65rem; }
             `}</style>
         </div>
     );
 }
+

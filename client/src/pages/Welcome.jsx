@@ -1,7 +1,8 @@
-import { useState, useEffect, useRef } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { auth, db } from "../firebase";
 import { doc, updateDoc } from "firebase/firestore";
+import { applyTheme, getThemeByRole } from "../utils/theme";
 
 // ─── Config de opciones ──────────────────────────────────────────────────────
 const OPTIONS = [
@@ -13,7 +14,7 @@ const OPTIONS = [
         title: "Gestionar mi colección",
         description: "Registra las cartas que tienes, arma tu wishlist y lleva el control total de tu colección.",
         benefits: ["Busca cualquier carta TCG", "Agrégala a tu inventario", "Márcalas como en venta"],
-        color: "#3b82f6", // Blue
+        color: getThemeByRole("inventory").primary,
         route: "/search",
     },
     {
@@ -24,7 +25,7 @@ const OPTIONS = [
         title: "Quiero vender cartas",
         description: "Encuentra compradores potenciales viendo lo que la comunidad está buscando activamente.",
         benefits: ["Ve la demanda en tiempo real", "Contacta compradores interesados", "Publica tu inventario"],
-        color: "#10b981", // Emerald
+        color: getThemeByRole("sell").primary,
         route: "/?tab=tendencias",
     },
     {
@@ -35,7 +36,7 @@ const OPTIONS = [
         title: "Quiero conseguir cartas",
         description: "Explora lo que otros coleccionistas están poniendo en venta hoy mismo.",
         benefits: ["Feed de ventas dinámico", "Vendedores verificados primero", "Chat directo sin intermediarios"],
-        color: "#f59e0b", // Amber/Gold
+        color: getThemeByRole("buy").primary,
         route: "/?tab=ventas",
     }
 ];
@@ -43,11 +44,6 @@ const OPTIONS = [
 export default function Welcome() {
     const navigate = useNavigate();
     const [activeIndex, setActiveIndex] = useState(1); // Empezamos en "Vendedor" (centro)
-    const [mounted, setMounted] = useState(false);
-
-    useEffect(() => {
-        setMounted(true);
-    }, []);
 
     const nextCard = () => setActiveIndex((prev) => (prev + 1) % OPTIONS.length);
     const prevCard = () => setActiveIndex((prev) => (prev - 1 + OPTIONS.length) % OPTIONS.length);
@@ -65,6 +61,7 @@ export default function Welcome() {
         } catch (e) {
             console.error("Error updating intent:", e);
         }
+        applyTheme(selected.id);
         navigate("/");
     };
 

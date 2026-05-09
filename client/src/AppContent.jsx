@@ -6,7 +6,6 @@ import { doc, onSnapshot } from "firebase/firestore";
 
 import Navbar from "./components/Navbar";
 import MobileNavbar from "./components/MobileNavbar";
-import NotificationPanel from "./components/NotificationPanel";
 
 import Profile from "./pages/Profile";
 import Auth from "./pages/Auth";
@@ -19,6 +18,7 @@ import Activity from "./pages/Activity";
 
 import { listenNotifications } from "./services/notificationService";
 import { listenUserChats } from "./services/chatService";
+import { applyTheme, DEFAULT_ROLE } from "./utils/theme";
 
 export default function AppContent() {
     const location = useLocation();
@@ -54,25 +54,15 @@ export default function AppContent() {
     const totalUnread = notifCount + unreadChats;
 
     useEffect(() => {
-        if (!user) return;
+        if (!user) {
+            applyTheme(DEFAULT_ROLE);
+            return;
+        }
         const unsub = onSnapshot(doc(db, "users", user.uid), (snap) => {
             if (snap.exists()) {
-                const data = snap.data();
-                const role = data.intentType || "sell";
-                
-                // Configuración de temas por rol
-                const themes = {
-                    inventory: { primary: "#3b82f6", rgb: "59, 130, 246" }, // Coleccionista - Azul
-                    sell: { primary: "#10b981", rgb: "16, 185, 129" },      // Vendedor - Esmeralda
-                    buy: { primary: "#f59e0b", rgb: "245, 158, 11" }        // Comprador - Ámbar
-                };
-
-                const selected = themes[role] || themes.sell;
-                
-                // Inyectar variables en el :root
-                document.documentElement.style.setProperty('--pocky-primary', selected.primary);
-                document.documentElement.style.setProperty('--pocky-primary-rgb', selected.rgb);
-                document.documentElement.style.setProperty('--pocky-glow', `rgba(${selected.rgb}, 0.35)`);
+                applyTheme(snap.data().intentType || DEFAULT_ROLE);
+            } else {
+                applyTheme(DEFAULT_ROLE);
             }
         });
         return () => unsub();

@@ -11,6 +11,7 @@ import { isAdmin, isPro } from "../services/chatService";
 import Cropper from "react-easy-crop";
 import { getCroppedImg } from "../utils/cropImage";
 import { useCurrency } from "../context/CurrencyContext";
+import { applyTheme, getThemeByRole } from "../utils/theme";
 
 export default function Profile() {
     const navigate = useNavigate();
@@ -110,13 +111,17 @@ export default function Profile() {
     const handleRoleChange = async (newRole) => {
         const user = auth.currentUser;
         if (!user) return;
+        const previousRole = userRole;
         setUserRole(newRole);
+        applyTheme(newRole);
         try {
             await setDoc(doc(db, "users", user.uid), {
                 intentType: newRole
             }, { merge: true });
             showToast(`Rol cambiado a ${newRole === 'inventory' ? 'Coleccionista' : newRole === 'sell' ? 'Vendedor' : 'Comprador'}`, "success");
         } catch (err) {
+            setUserRole(previousRole);
+            applyTheme(previousRole);
             showToast("Error al cambiar rol", "error");
         }
     };
@@ -291,9 +296,9 @@ export default function Profile() {
                     <p className="text-light-muted extra-small mb-2">Cambia tu enfoque para personalizar tu experiencia y colores.</p>
                     <div className="d-flex gap-1 gap-md-2 flex-wrap">
                         {[
-                            { id: 'inventory', label: 'Coleccionista', color: '#3b82f6', icon: 'bi-box-seam' },
-                            { id: 'sell', label: 'Vendedor', color: '#10b981', icon: 'bi-tag' },
-                            { id: 'buy', label: 'Comprador', color: '#f59e0b', icon: 'bi-bag-heart' }
+                            { id: 'inventory', label: 'Coleccionista', color: getThemeByRole('inventory').primary, icon: 'bi-box-seam' },
+                            { id: 'sell', label: 'Vendedor', color: getThemeByRole('sell').primary, icon: 'bi-tag' },
+                            { id: 'buy', label: 'Comprador', color: getThemeByRole('buy').primary, icon: 'bi-bag-heart' }
                         ].map(r => (
                             <button
                                 key={r.id}

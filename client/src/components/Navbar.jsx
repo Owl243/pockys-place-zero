@@ -54,7 +54,7 @@ export default function Navbar({ user, totalUnread }) {
                         <>
                             <div className="dropdown">
                                 <button className="btn btn-outline-secondary btn-sm rounded-circle p-0" style={{ width: "38px", height: "38px", overflow: "hidden" }} data-bs-toggle="dropdown">
-                                    <img src={auth.currentUser?.photoURL || `https://ui-avatars.com/api/?name=${auth.currentUser?.displayName || 'User'}&background=10b981&color=fff`} className="w-100 h-100 object-fit-cover" alt="Profile" />
+                                    <img src={auth.currentUser?.photoURL || `https://ui-avatars.com/api/?name=${auth.currentUser?.displayName || 'User'}&background=111827&color=fff`} className="w-100 h-100 object-fit-cover" alt="Profile" />
                                 </button>
                                 <ul className="dropdown-menu dropdown-menu-end shadow-lg border-0 rounded-3 mt-2">
                                     <li className="px-3 py-2"><p className="mb-0 small text-muted">Sesión como</p><p className="mb-0 fw-bold">{auth.currentUser?.displayName || auth.currentUser?.email?.split("@")[0]}</p></li>
@@ -67,7 +67,7 @@ export default function Navbar({ user, totalUnread }) {
                     ) : (
                         <>
                             <button className="btn btn-sm rounded-pill px-3 py-2 text-white" style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.15)", fontSize: "0.85rem" }} onClick={() => navigate("/auth", { state: { mode: "login" } })}>Entrar</button>
-                            <button className="btn btn-sm rounded-pill px-3 py-2 fw-bold text-white shadow-emerald" style={{ background: "linear-gradient(135deg,#10b981,#059669)", border: "none", fontSize: "0.85rem" }} onClick={() => navigate("/auth", { state: { mode: "register" } })}>Unirme</button>
+                            <button className="btn btn-sm rounded-pill px-3 py-2 fw-bold text-white shadow-emerald btn-emerald-gradient" style={{ fontSize: "0.85rem" }} onClick={() => navigate("/auth", { state: { mode: "register" } })}>Unirme</button>
                         </>
                     )}
                 </div>

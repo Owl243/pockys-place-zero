@@ -30,7 +30,7 @@ export default function MobileNavbar({ user, totalUnread }) {
                     onClick={() => navigate("/auth", { state: { mode: "register" } })}
                 >
                     <div className="rounded-pill px-3 py-1 d-flex align-items-center justify-content-center shadow-emerald"
-                        style={{ background: "linear-gradient(135deg,#10b981,#059669)", minWidth: "60px" }}>
+                        style={{ background: "linear-gradient(135deg, var(--pocky-primary), var(--pocky-primary-dark))", minWidth: "60px" }}>
                         <small className="fw-bold text-white" style={{ fontSize: "0.65rem" }}>Unirme</small>
                     </div>
                 </button>
@@ -60,7 +60,7 @@ export default function MobileNavbar({ user, totalUnread }) {
             <Link to="/profile" className={`nav-item ${isActive("/profile") ? "active-emerald" : ""}`}>
                 <div className="rounded-circle overflow-hidden mx-auto mb-1 border border-white border-opacity-20 shadow-sm" style={{ width: "26px", height: "26px" }}>
                     <img
-                        src={auth.currentUser?.photoURL || `https://ui-avatars.com/api/?name=${auth.currentUser?.displayName || 'User'}&background=10b981&color=fff`}
+                        src={auth.currentUser?.photoURL || `https://ui-avatars.com/api/?name=${auth.currentUser?.displayName || 'User'}&background=111827&color=fff`}
                         className="w-100 h-100 object-fit-cover"
                         alt="Profile"
                     />

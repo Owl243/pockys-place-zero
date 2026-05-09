@@ -51,6 +51,68 @@ export const markAsRead = async (userId, notifId) => {
     }
 };
 
+export const updateNotificationStatus = async (userId, notifId, data) => {
+    const notifRef = doc(db, "notifications", userId, "items", notifId);
+    await updateDoc(notifRef, {
+        ...data,
+        updatedAt: serverTimestamp()
+    });
+};
+
+export const createSaleOfferNotification = async (sellerId, { item, offerAmount, offerCurrency, offerUser }) => {
+    const itemTitle = item.cardName || item.name || "Articulo";
+    await addNotification(sellerId, {
+        type: "sale_offer",
+        title: "Nueva oferta",
+        message: `Alguien ofrece ${offerAmount} ${offerCurrency} por tu publicacion: ${itemTitle}`,
+        cardImage: item.cardImage || item.image || item.images?.small || "",
+        link: "/activity",
+        status: "pending",
+        offerAmount,
+        offerCurrency,
+        offerFromId: offerUser.uid,
+        offerFromName: offerUser.displayName || offerUser.email.split("@")[0],
+        offerFromPhoto: offerUser.photoURL || "",
+        listingOwnerId: sellerId,
+        listingId: item.id || "",
+        listingTitle: itemTitle
+    });
+};
+
+export const createOfferAcceptedNotification = async (buyerId, { itemTitle, amount, currency, sellerUser, cardImage }) => {
+    await addNotification(buyerId, {
+        type: "sale_offer_accepted",
+        title: "Oferta aceptada",
+        message: `${sellerUser.displayName || sellerUser.email.split("@")[0]} acepto tu oferta de ${amount} ${currency} por: ${itemTitle}`,
+        cardImage: cardImage || "",
+        link: "/activity",
+        status: "accepted",
+        itemTitle,
+        amount,
+        currency,
+        sellerId: sellerUser.uid,
+        sellerName: sellerUser.displayName || sellerUser.email.split("@")[0],
+        sellerPhoto: sellerUser.photoURL || ""
+    });
+};
+
+export const createCounterOfferNotification = async (buyerId, { itemTitle, amount, currency, sellerUser, cardImage }) => {
+    await addNotification(buyerId, {
+        type: "sale_counter_offer",
+        title: "Contraoferta recibida",
+        message: `${sellerUser.displayName || sellerUser.email.split("@")[0]} envio una contraoferta de ${amount} ${currency} por: ${itemTitle}`,
+        cardImage: cardImage || "",
+        link: "/activity",
+        status: "countered",
+        itemTitle,
+        amount,
+        currency,
+        sellerId: sellerUser.uid,
+        sellerName: sellerUser.displayName || sellerUser.email.split("@")[0],
+        sellerPhoto: sellerUser.photoURL || ""
+    });
+};
+
 // 🔔 Notificar a usuarios con esta carta en su wishlist
 export const notifyWishlistUsers = async (sellerId, card) => {
     try {
