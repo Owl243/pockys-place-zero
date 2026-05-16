@@ -5,11 +5,12 @@ import { saveCard, getInventory } from "../services/inventoryService";
 import { useToast } from "../context/ToastContext";
 import { postToFeed, postWishlistPublic } from "../services/feedService";
 import { useCurrency } from "../context/CurrencyContext";
-import { getPriceRaw, normalizeCardNumber } from "../utils/cardUtils";
+import { normalizeCardNumber } from "../utils/cardUtils";
+import { createListing } from "../services/listingsService";
 
 export default function Search() {
     const showToast = useToast();
-    const { formatPrice } = useCurrency();
+    useCurrency();
     const [query, setQuery] = useState("");
     const [cards, setCards] = useState([]);
     const [sets, setSets] = useState([]);
@@ -172,10 +173,17 @@ export default function Search() {
         };
         
         const action = dataMap[type];
-        await saveCard(user.uid, card, { inInventory: action.inInventory, inWishlist: action.inWishlist, forSale: action.forSale });
+        await saveCard(user.uid, card, {
+            inInventory: action.inInventory,
+            inWishlist: action.inWishlist,
+            forSale: action.forSale,
+            customName: card.name,
+            customPriceMxn: null
+        });
         
         if (type === 'sale') {
-            await postToFeed(user.uid, user.displayName || user.email.split("@")[0], user.photoURL, 'sale', card, user);
+            const listing = await createListing(user, { ...card, customName: card.name, customPriceMxn: null });
+            await postToFeed(user.uid, user.displayName || user.email.split("@")[0], user.photoURL, 'sale', { ...card, listingId: listing.id }, user, { listingId: listing.id });
         }
         if (type === 'wishlist') {
             await postWishlistPublic(user.uid, user.displayName || user.email.split("@")[0], user.photoURL, card);
@@ -264,7 +272,7 @@ export default function Search() {
                                         <span className="badge text-emerald border border-emerald border-opacity-30 rounded-pill px-2 py-1" style={{ fontSize: '0.6rem' }}>{card.set.name}</span>
                                         <span className="text-white fw-bold small opacity-75 ms-auto">
                                             <i className="bi bi-tag-fill text-emerald me-1"></i>
-                                            {getPriceRaw(card) ? formatPrice(getPriceRaw(card)) : "N/A"}
+                                            Sin precio local
                                         </span>
                                     </div>
                                     <h6 className="fw-bold mb-1 text-white text-truncate fs-6 opacity-90">{card.name}</h6>

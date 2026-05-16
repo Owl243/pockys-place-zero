@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { auth, db } from "../firebase";
-import { collection, query, orderBy, limit, onSnapshot } from "firebase/firestore";
+import { collection, query, orderBy, limit, onSnapshot, where } from "firebase/firestore";
 import { sendFeedMessage } from "../services/feedService";
 import {
     listenNotifications,
@@ -10,11 +10,12 @@ import {
     createOfferAcceptedNotification,
     createCounterOfferNotification
 } from "../services/notificationService";
-import { listenUserChats, listenMessages, sendMessage, startChat } from "../services/chatService";
+import { listenUserChats, listenMessages, sendMessage, startChat, isAdmin } from "../services/chatService";
 import { useCurrency } from "../context/CurrencyContext";
 import { useToast } from "../context/ToastContext";
-import { getPriceRaw } from "../utils/cardUtils";
+import { getDisplayPriceMxn, getPriceRaw } from "../utils/cardUtils";
 import { useNavigate, Link, useLocation } from "react-router-dom";
+import { createTransactionTicket, listenAllTransactions, updateTransactionStatus } from "../services/transactionService";
 
 function OfferModal({
     isOpen,
@@ -23,7 +24,6 @@ function OfferModal({
     currency,
     loading,
     onAmountChange,
-    onCurrencyChange,
     onClose,
     onSubmit
 }) {
@@ -51,15 +51,12 @@ function OfferModal({
                         value={amount}
                         onChange={(e) => onAmountChange(e.target.value)}
                     />
-                    <select
-                        className="form-select bg-black bg-opacity-40 border-white border-opacity-10 text-white"
-                        value={currency}
-                        onChange={(e) => onCurrencyChange(e.target.value)}
-                        style={{ maxWidth: "110px" }}
-                    >
-                        <option value="USD" className="bg-dark">USD</option>
-                        <option value="MXN" className="bg-dark">MXN</option>
-                    </select>
+                        <input
+                            className="form-control bg-black bg-opacity-40 border-white border-opacity-10 text-white"
+                            value="MXN"
+                            disabled
+                            style={{ maxWidth: "110px" }}
+                        />
                 </div>
                 <div className="d-flex gap-2">
                     <button className="btn btn-outline-light rounded-pill flex-grow-1" onClick={onClose} disabled={loading}>
@@ -80,7 +77,7 @@ export default function Activity() {
     const navigate = useNavigate();
     const location = useLocation();
 
-    const [activeTab, setActiveTab] = useState("muro"); // "muro" | "mensajes" | "alertas"
+    const [activeTab, setActiveTab] = useState("muro"); // "muro" | "mensajes" | "alertas" | "tickets"
 
     useEffect(() => {
         if (location.state?.openOffer) {
@@ -106,20 +103,42 @@ export default function Activity() {
     const [loadingChats, setLoadingChats] = useState(true);
     const [offerModal, setOfferModal] = useState({ open: false, mode: "offer", item: null, notification: null });
     const [offerAmount, setOfferAmount] = useState("");
-    const [offerCurrency, setOfferCurrency] = useState("USD");
+    const [offerCurrency, setOfferCurrency] = useState("MXN");
     const [submittingOffer, setSubmittingOffer] = useState(false);
     const chatEndRef = useRef(null);
     const feedEndRef = useRef(null);
 
+    // Transactions (Admin Only)
+    const [transactions, setTransactions] = useState([]);
+
+    // Listing statuses map (listingId -> status) for real-time En Tratos detection in feed
+    const [listingStatuses, setListingStatuses] = useState({});
+
     const user = auth.currentUser;
+    const isUserAdmin = isAdmin(user);
 
     // ── Social Feed Listener ──
     useEffect(() => {
         const q = query(collection(db, "feed"), orderBy("timestamp", "desc"), limit(50));
         const unsub = onSnapshot(q, (snap) => {
-            setFeedItems(snap.docs.map(d => ({ id: d.id, ...d.data() })).reverse());
+            const items = snap.docs
+                .map(d => ({ id: d.id, ...d.data() }))
+                .filter(item => item.action !== "admin_ticket") // Ocultar tickets del muro público
+                .reverse();
+            setFeedItems(items);
             setLoadingFeed(false);
         });
+        return () => unsub();
+    }, []);
+
+    // ── Listing Statuses Listener (for En Tratos in feed) ──
+    useEffect(() => {
+        const q = query(collection(db, "listings"), where("status", "in", ["active", "pending_admin"]));
+        const unsub = onSnapshot(q, (snap) => {
+            const map = {};
+            snap.docs.forEach(d => { map[d.id] = d.data().status; });
+            setListingStatuses(map);
+        }, () => {});
         return () => unsub();
     }, []);
 
@@ -159,6 +178,15 @@ export default function Activity() {
         return () => unsub();
     }, [activeChat]);
 
+    // ── Transactions Listener (Admin Only) ──
+    useEffect(() => {
+        if (!isUserAdmin) return;
+        const unsub = listenAllTransactions((data) => {
+            setTransactions(data);
+        });
+        return () => unsub();
+    }, [isUserAdmin]);
+
     const handleSendFeed = async () => {
         if (!user || !feedText.trim()) return;
         await sendFeedMessage(user.uid, user.displayName || user.email.split("@")[0], user.photoURL, feedText);
@@ -172,30 +200,24 @@ export default function Activity() {
         setChatText("");
     };
 
-    const handleInterest = async (item) => {
-        if (!user || user.uid === item.userId) return;
-        await startChat(user, { id: item.userId, name: item.userName, photo: item.userPhoto }, `¡Hola! Me interesa tu carta ${item.cardName}`);
-        setActiveTab("mensajes");
-    };
-
     const openOfferModal = (item) => {
-        const suggestedPrice = getPriceRaw(item.cardPriceData);
+        const suggestedPrice = getDisplayPriceMxn(item) ?? getPriceRaw(item.cardPriceData);
         setOfferModal({ open: true, mode: "offer", item, notification: null });
         setOfferAmount(suggestedPrice ? String(suggestedPrice) : "");
-        setOfferCurrency("USD");
+        setOfferCurrency("MXN");
     };
 
     const openCounterOfferModal = (notification) => {
         setOfferModal({ open: true, mode: "counter", item: null, notification });
         setOfferAmount(notification.offerAmount ? String(notification.offerAmount) : "");
-        setOfferCurrency(notification.offerCurrency || "USD");
+        setOfferCurrency(notification.offerCurrency || "MXN");
     };
 
     const closeOfferModal = () => {
         if (submittingOffer) return;
         setOfferModal({ open: false, mode: "offer", item: null, notification: null });
         setOfferAmount("");
-        setOfferCurrency("USD");
+        setOfferCurrency("MXN");
     };
 
     const handleClaimClick = (item) => {
@@ -235,21 +257,35 @@ export default function Activity() {
                 status: "accepted",
                 read: true
             });
-            await createOfferAcceptedNotification(notification.offerFromId, {
-                itemTitle: notification.listingTitle,
+            
+            // Solo notificar si no es un bot de prueba
+            if (notification.offerFromId !== "bot_tester_123") {
+                await createOfferAcceptedNotification(notification.offerFromId, {
+                    itemTitle: notification.listingTitle,
+                    amount: notification.offerAmount,
+                    currency: notification.offerCurrency,
+                    sellerUser: user,
+                    cardImage: notification.cardImage
+                });
+            }
+
+            await createTransactionTicket({
+                buyerId: notification.offerFromId,
+                sellerId: user.uid,
+                buyerName: notification.offerFromName,
+                sellerName: user.displayName || user.email.split("@")[0],
+                listingId: notification.listingId,
+                listingTitle: notification.listingTitle,
                 amount: notification.offerAmount,
                 currency: notification.offerCurrency,
-                sellerUser: user,
-                cardImage: notification.cardImage
+                cardImage: notification.cardImage,
+                status: "accepted",
+                participants: [user.uid, notification.offerFromId]
             });
-            await startChat(
-                user,
-                { id: notification.offerFromId, name: notification.offerFromName, photo: notification.offerFromPhoto },
-                `Acepto tu oferta de ${notification.offerAmount} ${notification.offerCurrency} por ${notification.listingTitle}.`
-            );
-            setActiveTab("mensajes");
-            showToast("Oferta aceptada", "success");
+
+            showToast("Oferta aceptada. Un administrador contactará a ambos pronto.", "success");
         } catch (error) {
+            console.error("Error al aceptar oferta:", error);
             showToast("No se pudo aceptar la oferta", "error");
         }
     };
@@ -266,25 +302,62 @@ export default function Activity() {
                 counterAmount: parsedAmount,
                 counterCurrency: offerCurrency
             });
-            await createCounterOfferNotification(notification.offerFromId, {
-                itemTitle: notification.listingTitle,
+            
+            // Solo notificar si no es un bot de prueba
+            if (notification.offerFromId !== "bot_tester_123") {
+                await createCounterOfferNotification(notification.offerFromId, {
+                    itemTitle: notification.listingTitle,
+                    amount: parsedAmount,
+                    currency: offerCurrency,
+                    sellerUser: user,
+                    cardImage: notification.cardImage
+                });
+            }
+
+            await createTransactionTicket({
+                buyerId: notification.offerFromId,
+                sellerId: user.uid,
+                buyerName: notification.offerFromName,
+                sellerName: user.displayName || user.email.split("@")[0],
+                listingId: notification.listingId,
+                listingTitle: notification.listingTitle,
                 amount: parsedAmount,
                 currency: offerCurrency,
-                sellerUser: user,
-                cardImage: notification.cardImage
+                cardImage: notification.cardImage,
+                status: "countered",
+                participants: [user.uid, notification.offerFromId]
             });
-            await startChat(
-                user,
-                { id: notification.offerFromId, name: notification.offerFromName, photo: notification.offerFromPhoto },
-                `Te envio una contraoferta de ${parsedAmount} ${offerCurrency} por ${notification.listingTitle}.`
-            );
+
             closeOfferModal();
-            setActiveTab("mensajes");
-            showToast("Contraoferta enviada", "success");
+            showToast("Contraoferta enviada. Un administrador contactará a ambos.", "success");
         } catch (error) {
             showToast("No se pudo enviar la contraoferta", "error");
         } finally {
             setSubmittingOffer(false);
+        }
+    };
+
+    const handleAdminStartChat = async (targetUser, message) => {
+        if (!user) return;
+        try {
+            const chatId = await startChat(user, targetUser, message);
+            if (chatId) {
+                setActiveTab("mensajes");
+                // Buscamos el chat en la lista para activarlo
+                const chatObj = chats.find(c => c.id === chatId);
+                if (chatObj) setActiveChat(chatObj);
+            }
+        } catch (error) {
+            showToast("Error al iniciar chat administrativo", "error");
+        }
+    };
+
+    const handleUpdateTicket = async (ticket, status) => {
+        try {
+            await updateTransactionStatus(ticket.id, status, ticket.listingId);
+            showToast(status === "completed" ? "Venta concretada" : "Venta cancelada", "success");
+        } catch (error) {
+            showToast("Error al actualizar ticket", "error");
         }
     };
 
@@ -311,7 +384,8 @@ export default function Activity() {
                     {[
                         { key: "muro", label: "Muro", icon: "bi-rss", badge: 0 },
                         { key: "mensajes", label: "Mensajes", icon: "bi-chat-dots", badge: unreadChats },
-                        { key: "alertas", label: "Alertas", icon: "bi-bell", badge: unreadNotifs }
+                        { key: "alertas", label: "Alertas", icon: "bi-bell", badge: unreadNotifs },
+                        ...(isUserAdmin ? [{ key: "tickets", label: "Tickets", icon: "bi-ticket-detailed", badge: transactions.filter(t => t.status !== 'completed' && t.status !== 'cancelled').length }] : [])
                     ].map(tab => (
                         <button
                             key={tab.key}
@@ -349,20 +423,34 @@ export default function Activity() {
                                                     style={{ width: isCardPost ? 'calc(100% - 40px)' : 'auto', maxWidth: '100%' }}
                                                 >
                                                     <span className="fw-bold text-white-50 extra-small mb-1">{item.userName}</span>
-                                                    {item.action === 'sale' ? (
+                                                    {item.action === 'sale' ? (() => {
+                                                        const listingStatus = item.listingId ? listingStatuses[item.listingId] : null;
+                                                        const isPendingAdmin = listingStatus === 'pending_admin';
+                                                        return (
                                                         <div
-                                                            className="rounded-4 p-3 shadow-sm"
+                                                            className="rounded-4 p-3 shadow-sm position-relative overflow-hidden"
                                                             style={{
                                                                 fontSize: '0.75rem',
                                                                 width: '75%',
                                                                 maxWidth: '75%',
-                                                                border: '2px solid rgba(16, 185, 129, 0.9)',
-                                                                background: 'transparent'
+                                                                border: isPendingAdmin ? '2px solid var(--pocky-purple)' : '2px solid rgba(16, 185, 129, 0.9)',
+                                                                background: isPendingAdmin ? 'rgba(88, 28, 135, 0.06)' : 'transparent',
+                                                                transition: 'all 0.4s ease'
                                                             }}
                                                         >
+                                                            {isPendingAdmin && (
+                                                                <div className="position-absolute top-0 start-0 w-100 h-100" style={{ background: 'rgba(88,28,135,0.05)', pointerEvents: 'none', zIndex: 1 }} />
+                                                            )}
+                                                            {isPendingAdmin && (
+                                                                <div className="position-absolute top-0 end-0 m-2" style={{ zIndex: 2 }}>
+                                                                    <span className="badge rounded-pill bg-purple fw-bold animate-pulse" style={{ fontSize: '0.58rem', letterSpacing: '0.5px' }}>
+                                                                        <i className="bi bi-clock-history me-1"></i>EN TRATOS
+                                                                    </span>
+                                                                </div>
+                                                            )}
                                                             <div className="d-flex align-items-stretch gap-3">
                                                                 <div className="d-flex align-items-center justify-content-center flex-shrink-0">
-                                                                    <img src={item.cardImage} style={{ height: "113px", width: "80px", objectFit: "contain", flexShrink: 0 }} />
+                                                                    <img src={item.cardImage} style={{ height: "113px", width: "80px", objectFit: "contain", flexShrink: 0, filter: isPendingAdmin ? 'grayscale(30%) brightness(0.85)' : 'none', transition: 'filter 0.4s ease' }} />
                                                                 </div>
                                                                 <div className="min-w-0 d-flex flex-column justify-content-between flex-grow-1">
                                                                     <div className="min-w-0">
@@ -370,14 +458,21 @@ export default function Activity() {
                                                                         {item.cardSet && <p className="mb-1 text-white-50" style={{ fontSize: '0.68rem', lineHeight: 1.2 }}>{item.cardSet}</p>}
                                                                         {item.cardRarity && <p className="mb-0 text-white-50" style={{ fontSize: '0.66rem', lineHeight: 1.2 }}>Rareza: {item.cardRarity}</p>}
                                                                     </div>
-                                                                    <div className="d-flex align-items-end justify-content-between gap-2 mt-2">
-                                                                        <span className="text-emerald fw-bold" style={{ fontSize: '0.78rem', lineHeight: 1 }}>{formatPrice(getPriceRaw(item.cardPriceData))}</span>
-                                                                        <button className="btn btn-emerald btn-sm rounded-pill px-3 py-2 fw-bold flex-shrink-0" onClick={() => handleClaimClick(item)} style={{ fontSize: '0.72rem', minWidth: '96px', lineHeight: 1 }}>Claim</button>
+                                                                    <div className="mt-2 d-flex flex-column gap-1">
+                                                                        <div className="d-flex align-items-center justify-content-between gap-2">
+                                                                            <span className="fw-bold" style={{ fontSize: '0.85rem', lineHeight: 1, color: isPendingAdmin ? 'var(--pocky-purple)' : 'var(--pocky-primary)' }}>{formatPrice(getDisplayPriceMxn(item)) || "Sin precio"}</span>
+                                                                            {isPendingAdmin ? (
+                                                                                <span className="btn btn-sm rounded-pill px-3 py-1 fw-bold flex-shrink-0 disabled" style={{ fontSize: '0.7rem', minWidth: '80px', background: 'rgba(88,28,135,0.25)', color: 'var(--pocky-purple)', border: '1px solid rgba(88,28,135,0.4)', cursor: 'default' }}>En mediación</span>
+                                                                            ) : (
+                                                                                <button className="btn btn-emerald btn-sm rounded-pill px-3 py-1 fw-bold flex-shrink-0" onClick={() => handleClaimClick(item)} style={{ fontSize: '0.7rem', minWidth: '80px' }}>Claim</button>
+                                                                            )}
+                                                                        </div>
                                                                     </div>
                                                                 </div>
                                                             </div>
                                                         </div>
-                                                    ) : item.action === 'wishlist_public' ? (
+                                                        );
+                                                    })() : item.action === 'wishlist_public' ? (
                                                         <div
                                                             className="rounded-4 p-3 shadow-lg position-relative overflow-hidden"
                                                             style={{
@@ -391,31 +486,15 @@ export default function Activity() {
                                                             <div className="position-absolute top-0 end-0 px-3 py-1 bg-pink text-white fw-bold rounded-bl-3" style={{ fontSize: '0.7rem' }}>Buscando</div>
                                                             <div className="d-flex align-items-stretch gap-3 mt-2">
                                                                 <div className="d-flex align-items-center justify-content-center flex-shrink-0">
-                                                                    <img
-                                                                        src={item.cardImage}
-                                                                        style={{
-                                                                            height: "130px",
-                                                                            width: "90px",
-                                                                            objectFit: "contain",
-                                                                            flexShrink: 0,
-                                                                            filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.4))'
-                                                                        }}
-                                                                    />
+                                                                    <img src={item.cardImage} style={{ height: "130px", width: "90px", objectFit: "contain", flexShrink: 0, filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.4))' }} />
                                                                 </div>
                                                                 <div className="min-w-0 d-flex flex-column justify-content-between flex-grow-1">
                                                                     <div className="min-w-0 pt-1">
                                                                         <p className="mb-1 text-white fw-bold" style={{ fontSize: '1rem', lineHeight: 1.1 }}>{item.cardName}</p>
                                                                         {item.cardSet && <p className="mb-1 text-white-50" style={{ fontSize: '0.75rem', lineHeight: 1.2 }}>{item.cardSet}</p>}
-                                                                        {item.cardRarity && <p className="mb-0 text-white-50" style={{ fontSize: '0.75rem', lineHeight: 1.2 }}>Rareza: {item.cardRarity}</p>}
                                                                     </div>
                                                                     <div className="d-flex align-items-end justify-content-end mt-3">
-                                                                        <button
-                                                                            className="btn btn-pink rounded-pill px-4 py-2 fw-bold text-white shadow-sm transition-all hover-scale-105"
-                                                                            onClick={() => handleWishlistInterest(item)}
-                                                                            style={{ fontSize: '0.85rem' }}
-                                                                        >
-                                                                            <i className="bi bi-bag-check-fill me-2"></i>¡Tengo esto!
-                                                                        </button>
+                                                                        <button className="btn btn-pink rounded-pill px-4 py-2 fw-bold text-white shadow-sm transition-all hover-scale-105" onClick={() => handleWishlistInterest(item)} style={{ fontSize: '0.85rem' }}><i className="bi bi-bag-check-fill me-2"></i>¡Tengo esto!</button>
                                                                     </div>
                                                                 </div>
                                                             </div>
@@ -434,7 +513,7 @@ export default function Activity() {
                             <div ref={feedEndRef} />
                         </div>
                         <div className="input-group rounded-pill overflow-hidden border border-white border-opacity-10 bg-dark bg-opacity-60 backdrop-blur-xl p-1 shadow-2xl flex-shrink-0">
-                            <input type="text" className="form-control border-0 bg-transparent text-white ps-3 py-2" placeholder="Comparte..." value={feedText} onChange={e => setFeedText(e.target.value)} onKeyPress={e => e.key === 'Enter' && handleSendFeed()} style={{ fontSize: '0.9rem' }} />
+                            <input type="text" className="form-control border-0 bg-transparent text-white ps-3 py-2" placeholder="Comparte..." value={feedText} onChange={e => e.key === 'Enter' && handleSendFeed()} style={{ fontSize: '0.9rem' }} />
                             <button className="btn btn-emerald rounded-pill px-3 ms-1 transition-all" onClick={handleSendFeed}><i className="bi bi-send-fill"></i></button>
                         </div>
                     </div>
@@ -484,7 +563,7 @@ export default function Activity() {
                                             const isMine = msg.senderId === user.uid;
                                             return (
                                                 <div key={msg.id || idx} className={`d-flex ${isMine ? 'justify-content-end' : 'justify-content-start'}`}>
-                                                    <div className={`p-2 px-3 rounded-4 max-w-75 shadow-sm ${isMine ? 'bg-emerald bg-opacity-20 border border-emerald border-opacity-20 rounded-tr-0 text-white' : 'bg-dark bg-opacity-50 border border-white border-opacity-10 rounded-tl-0 text-white'}`} style={{ maxWidth: '80%' }}>
+                                                    <div className={`p-2 px-3 rounded-4 shadow-sm ${isMine ? 'bg-emerald bg-opacity-20 border border-emerald border-opacity-20 rounded-tr-0 text-white' : 'bg-dark bg-opacity-50 border border-white border-opacity-10 rounded-tl-0 text-white'}`} style={{ maxWidth: '80%' }}>
                                                         <p className="mb-0 small">{msg.text}</p>
                                                         <small className="text-white-50 mt-1 d-block opacity-40" style={{ fontSize: '0.55rem' }}>{msg.timestamp?.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</small>
                                                     </div>
@@ -566,6 +645,80 @@ export default function Activity() {
                         )}
                     </div>
                 )}
+
+                {/* ── TAB: TICKETS (ADMIN ONLY) ── */}
+                {activeTab === 'tickets' && isUserAdmin && (
+                    <div className="mx-auto w-100" style={{ maxWidth: '860px' }}>
+                        {/* Pending tickets */}
+                        {transactions.filter(t => t.status !== 'completed' && t.status !== 'cancelled').length === 0
+                            ? <div className="text-center py-5 opacity-20"><i className="bi bi-ticket-perforated fs-1 d-block mb-2"></i>No hay tickets pendientes</div>
+                            : (
+                                <div className="d-flex flex-column gap-2" style={{ overflowY: 'auto', maxHeight: 'calc(100dvh - 260px)' }}>
+                                    {transactions.filter(t => t.status !== 'completed' && t.status !== 'cancelled').map(t => (
+                                        <div key={t.id} className="rounded-4 border border-white border-opacity-10 overflow-hidden" style={{ background: 'rgba(255,255,255,0.03)' }}>
+                                            {/* Header row */}
+                                            <div className="d-flex align-items-center gap-3 p-3">
+                                                <img src={t.cardImage} style={{ width: '36px', height: '50px', objectFit: 'contain', flexShrink: 0, filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.5))' }} />
+                                                <div className="flex-grow-1 min-w-0">
+                                                    <div className="d-flex align-items-center gap-2 mb-1 flex-wrap">
+                                                        <span className={`badge rounded-pill small ${t.status === 'accepted' ? 'bg-emerald bg-opacity-20 text-emerald' : 'bg-warning bg-opacity-20 text-warning'}`}>
+                                                            {t.status === 'accepted' ? 'Aceptada' : 'Contraoferta'}
+                                                        </span>
+                                                        <span className="text-white-50 extra-small">#{t.id.slice(-6).toUpperCase()}</span>
+                                                    </div>
+                                                    <p className="text-white fw-bold mb-0 text-truncate" style={{ fontSize: '0.88rem' }}>{t.listingTitle}</p>
+                                                </div>
+                                                <div className="text-end flex-shrink-0">
+                                                    <span className="text-emerald fw-bold d-block" style={{ fontSize: '1rem' }}>{t.amount} {t.currency}</span>
+                                                    <small className="text-white-50" style={{ fontSize: '0.6rem' }}>Mediación</small>
+                                                </div>
+                                            </div>
+
+                                            {/* Parties + Actions */}
+                                            <div className="d-flex gap-2 px-3 pb-3 flex-wrap">
+                                                <div className="d-flex align-items-center gap-2 bg-dark bg-opacity-40 rounded-3 px-2 py-1 flex-grow-1" style={{ minWidth: '120px' }}>
+                                                    <i className="bi bi-person-fill text-white-50" style={{ fontSize: '0.7rem' }}></i>
+                                                    <span className="text-white small text-truncate fw-bold" style={{ fontSize: '0.78rem' }}>{t.sellerName}</span>
+                                                    <button className="btn btn-sm p-0 ms-auto" style={{ lineHeight: 1 }} onClick={() => handleAdminStartChat({ id: t.sellerId, name: t.sellerName }, `Hola ${t.sellerName}, soy el admin revisando tu trato por ${t.listingTitle}`)}>
+                                                        <i className="bi bi-chat-fill text-emerald" style={{ fontSize: '0.75rem' }}></i>
+                                                    </button>
+                                                </div>
+                                                <div className="d-flex align-items-center gap-2 bg-dark bg-opacity-40 rounded-3 px-2 py-1 flex-grow-1" style={{ minWidth: '120px' }}>
+                                                    <i className="bi bi-bag-fill text-white-50" style={{ fontSize: '0.7rem' }}></i>
+                                                    <span className="text-white small text-truncate fw-bold" style={{ fontSize: '0.78rem' }}>{t.buyerName}</span>
+                                                    <button className="btn btn-sm p-0 ms-auto" style={{ lineHeight: 1 }} onClick={() => handleAdminStartChat({ id: t.buyerId, name: t.buyerName }, `Hola ${t.buyerName}, soy el admin revisando tu trato por ${t.listingTitle}`)}>
+                                                        <i className="bi bi-chat-fill text-emerald" style={{ fontSize: '0.75rem' }}></i>
+                                                    </button>
+                                                </div>
+                                                <button className="btn btn-sm btn-emerald fw-bold rounded-3 px-3 shadow-emerald" onClick={() => handleUpdateTicket(t, "completed")} style={{ fontSize: '0.75rem', whiteSpace: 'nowrap' }}>
+                                                    <i className="bi bi-check-all me-1"></i>Concretar
+                                                </button>
+                                                <button className="btn btn-sm btn-outline-danger fw-bold rounded-3 px-3" onClick={() => handleUpdateTicket(t, "cancelled")} style={{ fontSize: '0.75rem', whiteSpace: 'nowrap' }}>
+                                                    <i className="bi bi-x-circle me-1"></i>Cancelar
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )
+                        }
+                        
+                        {/* Historial rápido opcional */}
+                        {transactions.filter(t => t.status === 'completed' || t.status === 'cancelled').length > 0 && (
+                            <div className="mt-4">
+                                <h6 className="text-white-50 small uppercase mb-3 px-2">Historial Reciente</h6>
+                                {transactions.filter(t => t.status === 'completed' || t.status === 'cancelled').slice(0, 5).map(t => (
+                                    <div key={t.id} className="p-2 px-3 bg-dark bg-opacity-20 rounded-pill border border-white border-opacity-5 mb-1 d-flex justify-content-between align-items-center opacity-50">
+                                        <small className="text-white">{t.listingTitle}</small>
+                                        <span className={`extra-small fw-bold ${t.status === 'completed' ? 'text-emerald' : 'text-danger'}`}>
+                                            {t.status === 'completed' ? 'CONCRETADA' : 'CANCELADA'}
+                                        </span>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                )}
             </div>
 
             <OfferModal
@@ -575,7 +728,6 @@ export default function Activity() {
                 currency={offerCurrency}
                 loading={submittingOffer}
                 onAmountChange={setOfferAmount}
-                onCurrencyChange={setOfferCurrency}
                 onClose={closeOfferModal}
                 onSubmit={offerModal.mode === "offer" ? submitOffer : submitCounterOffer}
             />

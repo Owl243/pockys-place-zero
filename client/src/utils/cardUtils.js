@@ -30,6 +30,18 @@ export const getPriceRaw = (card) => {
     return null;
 };
 
+export const getDisplayName = (card) => {
+    if (!card) return "";
+    return card.customName || card.cardName || card.name || "";
+};
+
+export const getDisplayPriceMxn = (card) => {
+    if (!card) return null;
+    if (typeof card.customPriceMxn === "number") return card.customPriceMxn;
+    if (typeof card.priceMxn === "number") return card.priceMxn;
+    return null;
+};
+
 /**
  * Normaliza un número de carta para ordenamiento natural.
  */

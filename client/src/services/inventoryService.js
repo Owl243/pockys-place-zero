@@ -17,7 +17,9 @@ export const saveCard = async (userId, card, data) => {
         number: card.number || "",
         rarity: card.rarity || "",
         setName: card.set?.name || card.setName || "",
-        tcgplayer: card.tcgplayer || card.tcgplayer || null,
+        tcgplayer: card.tcgplayer || card.cardPriceData || null,
+        customName: data.customName ?? card.customName ?? card.name ?? "",
+        customPriceMxn: data.customPriceMxn ?? card.customPriceMxn ?? null,
         ...data,
     });
 };

@@ -1,46 +1,44 @@
 import { db } from "../firebase";
-import { 
-    collection, 
-    addDoc, 
-    query, 
-    orderBy, 
-    limit, 
+import {
+    addDoc,
+    collection,
+    doc,
+    getDoc,
+    getDocs,
+    limit,
     onSnapshot,
+    orderBy,
+    query,
     serverTimestamp,
     where,
-    getDocs,
-    getDoc,
-    writeBatch,
-    doc
+    writeBatch
 } from "firebase/firestore";
 import { notifyWishlistUsers } from "./notificationService";
 import { isPro } from "./chatService";
+import { getDisplayName, getDisplayPriceMxn } from "../utils/cardUtils";
 
 const FEED_COLLECTION = "feed";
 
-// 🔄 Actualizar nombre y foto de un usuario en todos sus posts del feed
 export const updateUserInFeed = async (userId, updates) => {
     try {
         const q = query(collection(db, FEED_COLLECTION), where("userId", "==", userId));
         const querySnapshot = await getDocs(q);
         const batch = writeBatch(db);
-        
+
         querySnapshot.forEach((document) => {
             const docRef = doc(db, FEED_COLLECTION, document.id);
             batch.update(docRef, updates);
         });
-        
+
         await batch.commit();
     } catch (error) {
         console.error("Error updating user in feed:", error);
     }
 };
 
-// 📝 Crear una publicación en el feed
-export const postToFeed = async (userId, userName, userPhoto, action, card, userObj = null) => {
+export const postToFeed = async (userId, userName, userPhoto, action, card, userObj = null, extras = {}) => {
     try {
-        // 1. Evitar duplicados en ventas: si ya hay una venta activa para este usuario y esta carta, no publicar
-        if (action === 'sale') {
+        if (action === "sale") {
             const q = query(
                 collection(db, FEED_COLLECTION),
                 where("userId", "==", userId),
@@ -48,11 +46,30 @@ export const postToFeed = async (userId, userName, userPhoto, action, card, user
                 where("cardId", "==", card.id)
             );
             const snap = await getDocs(q);
-            if (!snap.empty) return;
+            if (!snap.empty) {
+                const batch = writeBatch(db);
+                snap.forEach((feedDoc) => {
+                    batch.update(doc(db, FEED_COLLECTION, feedDoc.id), {
+                        listingId: extras.listingId || card.listingId || null,
+                        cardName: getDisplayName(card),
+                        customName: card.customName || null,
+                        cardNumber: card.number || "",
+                        cardRarity: card.rarity || "",
+                        cardSetName: card.set?.name || card.setName || "",
+                        cardImage: card.images?.small || card.image || card.cardImage || null,
+                        cardPriceData: card.tcgplayer || card.cardPriceData || null,
+                        customPriceMxn: getDisplayPriceMxn(card),
+                        message: `ha puesto en venta a ${getDisplayName(card)}!`,
+                        timestamp: serverTimestamp()
+                    });
+                });
+                await batch.commit();
+                await notifyWishlistUsers(userId, card);
+                return;
+            }
         }
 
-        // 2. Si es una venta finalizada, limpiar los anuncios de venta anteriores de esa carta
-        if (action === 'sale_finished') {
+        if (action === "sale_finished") {
             const q = query(
                 collection(db, FEED_COLLECTION),
                 where("userId", "==", userId),
@@ -61,7 +78,7 @@ export const postToFeed = async (userId, userName, userPhoto, action, card, user
             );
             const snap = await getDocs(q);
             const batch = writeBatch(db);
-            snap.forEach(d => batch.delete(doc(db, FEED_COLLECTION, d.id)));
+            snap.forEach((feedDoc) => batch.delete(doc(db, FEED_COLLECTION, feedDoc.id)));
             await batch.commit();
         }
 
@@ -71,8 +88,8 @@ export const postToFeed = async (userId, userName, userPhoto, action, card, user
             if (userDoc.exists()) {
                 deliveryPrefs = userDoc.data().deliveryPrefs || [];
             }
-        } catch (e) {
-            console.error("Error fetching delivery prefs:", e);
+        } catch (error) {
+            console.error("Error fetching delivery prefs:", error);
         }
 
         await addDoc(collection(db, FEED_COLLECTION), {
@@ -82,19 +99,25 @@ export const postToFeed = async (userId, userName, userPhoto, action, card, user
             isPro: userObj ? isPro(userObj) : false,
             deliveryPrefs,
             action,
+            listingId: extras.listingId || card.listingId || null,
             cardId: card.id,
-            cardName: card?.name || null,
-            cardNumber: card?.number || "",
-            cardRarity: card?.rarity || "",
-            cardSetName: card?.set?.name || card?.setName || "",
-            cardImage: card?.images?.small || card?.image || card?.cardImage || null,
-            cardPriceData: card?.tcgplayer || card?.cardPriceData || null,
+            cardName: getDisplayName(card),
+            customName: card.customName || null,
+            cardNumber: card.number || "",
+            cardRarity: card.rarity || "",
+            cardSetName: card.set?.name || card.setName || "",
+            cardImage: card.images?.small || card.image || card.cardImage || null,
+            cardPriceData: card.tcgplayer || card.cardPriceData || null,
+            customPriceMxn: getDisplayPriceMxn(card),
             timestamp: serverTimestamp(),
-            message: action === 'sale' ? `ha puesto en venta a ${card.name}!` : 
-                     action === 'sale_finished' ? `ha finalizado la venta de ${card.name}` : null
+            message: action === "sale"
+                ? `ha puesto en venta a ${getDisplayName(card)}!`
+                : action === "sale_finished"
+                    ? `ha finalizado la venta de ${getDisplayName(card)}`
+                    : null
         });
 
-        if (action === 'sale') {
+        if (action === "sale") {
             await notifyWishlistUsers(userId, card);
         }
     } catch (error) {
@@ -102,31 +125,33 @@ export const postToFeed = async (userId, userName, userPhoto, action, card, user
     }
 };
 
-// 📡 Escuchar cambios en el feed (tiempo real)
+export const syncSaleFeedPost = async (userId, card, extras = {}) => {
+    await postToFeed(userId, extras.userName, extras.userPhoto, "sale", card, extras.userObj || null, extras);
+};
+
 export const subscribeToFeed = (callback) => {
     const q = query(
-        collection(db, FEED_COLLECTION), 
-        orderBy("timestamp", "desc"), 
+        collection(db, FEED_COLLECTION),
+        orderBy("timestamp", "desc"),
         limit(50)
     );
-    
+
     return onSnapshot(q, (snapshot) => {
-        const items = snapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
+        const items = snapshot.docs.map((feedDoc) => ({
+            id: feedDoc.id,
+            ...feedDoc.data()
         }));
         callback(items);
     });
 };
 
-// 💬 Enviar un mensaje al feed (Chat global)
 export const sendFeedMessage = async (userId, userName, userPhoto, text) => {
     try {
         await addDoc(collection(db, FEED_COLLECTION), {
             userId,
             userName: userName || "Coleccionista",
             userPhoto: userPhoto || `https://ui-avatars.com/api/?name=${userName}&background=random`,
-            action: 'message',
+            action: "message",
             message: text,
             timestamp: serverTimestamp()
         });
@@ -135,10 +160,8 @@ export const sendFeedMessage = async (userId, userName, userPhoto, text) => {
     }
 };
 
-// 💗 Publicar wishlist al feed comunitario
 export const postWishlistPublic = async (userId, userName, userPhoto, card) => {
     try {
-        // Evitar duplicados: verificar si ya existe para este userId + cardId
         const existing = query(
             collection(db, FEED_COLLECTION),
             where("userId", "==", userId),
@@ -146,21 +169,23 @@ export const postWishlistPublic = async (userId, userName, userPhoto, card) => {
             where("cardId", "==", card.id)
         );
         const snap = await getDocs(existing);
-        if (!snap.empty) return; // ya está publicado
+        if (!snap.empty) return;
 
         await addDoc(collection(db, FEED_COLLECTION), {
             userId,
             userName: userName || "Coleccionista",
             userPhoto: userPhoto || `https://ui-avatars.com/api/?name=${userName}&background=random`,
             action: "wishlist_public",
-            message: `está buscando a ${card.name}`,
+            message: `esta buscando a ${getDisplayName(card)}`,
             cardId: card.id,
-            cardName: card.name || null,
+            cardName: getDisplayName(card),
+            customName: card.customName || null,
             cardNumber: card.number || "",
             cardRarity: card.rarity || "",
             cardSetName: card.set?.name || card.setName || "",
             cardImage: card.images?.small || card.image || card.cardImage || null,
             cardPriceData: card.tcgplayer || card.cardPriceData || null,
+            customPriceMxn: getDisplayPriceMxn(card),
             timestamp: serverTimestamp()
         });
     } catch (error) {
@@ -168,7 +193,6 @@ export const postWishlistPublic = async (userId, userName, userPhoto, card) => {
     }
 };
 
-// 🗑️ Retirar wishlist del feed comunitario
 export const removeWishlistPublic = async (userId, cardId) => {
     try {
         const q = query(
@@ -179,7 +203,7 @@ export const removeWishlistPublic = async (userId, cardId) => {
         );
         const snap = await getDocs(q);
         const batch = writeBatch(db);
-        snap.forEach(d => batch.delete(doc(db, FEED_COLLECTION, d.id)));
+        snap.forEach((feedDoc) => batch.delete(doc(db, FEED_COLLECTION, feedDoc.id)));
         await batch.commit();
     } catch (error) {
         console.error("Error removing wishlist from feed:", error);

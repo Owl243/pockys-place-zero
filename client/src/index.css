@@ -10,10 +10,14 @@
   --social-bg: rgba(47, 48, 58, 0.5);
   --shadow: rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
 
-  /* 🎨 Pocky Theme Variables (Defaults to Emerald) */
+  /* 🎨 Pocky Theme Variables */
   --pocky-primary: #10b981;
   --pocky-primary-rgb: 16, 185, 129;
   --pocky-glow: rgba(16, 185, 129, 0.35);
+
+  --pocky-purple: #a855f7;
+  --pocky-purple-rgb: 168, 85, 247;
+  --pocky-purple-glow: rgba(168, 85, 247, 0.4);
 
   --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
   --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
@@ -58,6 +62,22 @@
 }
 
 .shadow-emerald { box-shadow: 0 0 20px var(--pocky-glow); }
+
+/* 💜 Purple / Mediación Theme */
+.text-purple { color: var(--pocky-purple) !important; }
+.bg-purple { background-color: var(--pocky-purple) !important; }
+.btn-purple { background: var(--pocky-purple) !important; color: white; border: none; transition: all 0.3s; }
+.btn-purple:hover { filter: brightness(1.1); transform: translateY(-1px); box-shadow: 0 4px 15px var(--pocky-purple-glow); }
+.border-purple { border-color: var(--pocky-purple) !important; border-width: 2px !important; }
+.shadow-purple { box-shadow: 0 0 20px var(--pocky-purple-glow); }
+.shadow-purple-sm { box-shadow: 0 0 10px rgba(var(--pocky-purple-rgb), 0.2); }
+
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.8; transform: scale(1.05); }
+}
+.animate-pulse { animation: pulse-soft 2s infinite ease-in-out; }
+
 .shadow-emerald-sm { box-shadow: 0 0 10px rgba(var(--pocky-primary-rgb), 0.15); }
 .shadow-2xl { box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); }
 

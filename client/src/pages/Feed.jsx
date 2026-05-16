@@ -3,7 +3,7 @@ import { auth, db } from "../firebase";
 import { collection, query, orderBy, limit, onSnapshot } from "firebase/firestore";
 import { sendFeedMessage } from "../services/feedService";
 import { useCurrency } from "../context/CurrencyContext";
-import { getPriceRaw } from "../utils/cardUtils";
+import { getDisplayPriceMxn } from "../utils/cardUtils";
 import { useNavigate } from "react-router-dom";
 import { startChat } from "../services/chatService";
 
@@ -117,12 +117,22 @@ export default function Feed() {
                                                                 <p className="mb-0 text-white fw-bold text-truncate" style={{ fontSize: '0.85rem' }}>{item.cardName}</p>
                                                                 <p className="mb-0 text-emerald opacity-75 fw-medium text-truncate" style={{ fontSize: '0.65rem' }}>#{item.cardNumber} • {item.cardSetName}</p>
                                                             </div>
-                                                            <div className="d-flex align-items-center flex-wrap gap-2">
-                                                                {getPriceRaw(item.cardPriceData) && (
-                                                                    <div className="price-tag-premium">
-                                                                        {formatPrice(getPriceRaw(item.cardPriceData))}
+                                                            <div className="d-flex flex-column gap-2">
+                                                                <div className="d-flex align-items-center gap-2">
+                                                                    {getDisplayPriceMxn(item) && (
+                                                                        <div className="price-tag-premium">
+                                                                            {formatPrice(getDisplayPriceMxn(item))}
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                                {(item.deliveryPrefs || []).filter(p => p !== "Frikiplaza" && p !== "Metro (CDMX)").length > 0 && (
+                                                                    <div className="d-flex flex-wrap gap-1 opacity-40">
+                                                                        {(item.deliveryPrefs || []).filter(p => p !== "Frikiplaza" && p !== "Metro (CDMX)").map(pref => (
+                                                                            <span key={pref} style={{ fontSize: "0.45rem", fontWeight: 800, color: '#10b981' }}>{pref === "Blanquita/Frikiplaza" ? "BLANQUITA" : pref.toUpperCase()}</span>
+                                                                        ))}
                                                                     </div>
                                                                 )}
+                                                            </div>
                                                                 <button 
                                                                     className="btn btn-claim-premium btn-sm rounded-pill px-3 fw-bold shadow-sm transition-all hover-scale-105"
                                                                     onClick={() => handleInterest(item)}

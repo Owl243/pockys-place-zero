@@ -204,9 +204,9 @@ export default function Wishlist() {
                                                     #{card.number} · {card.setName || "Set desconocido"}
                                                 </p>
                                             </div>
-                                            {getPriceRaw(card) && (
+                                            {card.customPriceMxn && (
                                                 <span className="fw-bold" style={{ fontSize: "0.8rem", color: "#ff4b91" }}>
-                                                    ${getPriceRaw(card).toFixed(2)} USD
+                                                    {formatPrice(card.customPriceMxn)}
                                                 </span>
                                             )}
 

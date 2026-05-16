@@ -15,9 +15,10 @@ import Privacy from "./pages/Privacy";
 import Terms from "./pages/Terms";
 import Collection from "./pages/Collection";
 import Activity from "./pages/Activity";
+import DevToolbox from "./components/DevToolbox";
 
-import { listenNotifications } from "./services/notificationService";
-import { listenUserChats } from "./services/chatService";
+import { listenNotifications, } from "./services/notificationService";
+import { listenUserChats, loadDynamicAdmins } from "./services/chatService";
 import { applyTheme, DEFAULT_ROLE } from "./utils/theme";
 
 export default function AppContent() {
@@ -32,6 +33,7 @@ export default function AppContent() {
         const unsub = onAuthStateChanged(auth, (u) => {
             setUser(u);
             setLoading(false);
+            if (u) loadDynamicAdmins(); // Refrescar lista de admins en cada login
         });
         return () => unsub();
     }, []);
@@ -116,6 +118,7 @@ export default function AppContent() {
             </div>
 
             {!hideNavbar && <MobileNavbar user={user} totalUnread={totalUnread} />}
+            <DevToolbox user={user} />
         </>
     );
 }

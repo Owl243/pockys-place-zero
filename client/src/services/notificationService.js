@@ -83,7 +83,7 @@ export const createOfferAcceptedNotification = async (buyerId, { itemTitle, amou
     await addNotification(buyerId, {
         type: "sale_offer_accepted",
         title: "Oferta aceptada",
-        message: `${sellerUser.displayName || sellerUser.email.split("@")[0]} acepto tu oferta de ${amount} ${currency} por: ${itemTitle}`,
+        message: `${sellerUser.displayName || sellerUser.email.split("@")[0]} aceptó tu oferta por: ${itemTitle}. Un administrador te contactará pronto para finalizar el trato.`,
         cardImage: cardImage || "",
         link: "/activity",
         status: "accepted",
@@ -100,7 +100,7 @@ export const createCounterOfferNotification = async (buyerId, { itemTitle, amoun
     await addNotification(buyerId, {
         type: "sale_counter_offer",
         title: "Contraoferta recibida",
-        message: `${sellerUser.displayName || sellerUser.email.split("@")[0]} envio una contraoferta de ${amount} ${currency} por: ${itemTitle}`,
+        message: `${sellerUser.displayName || sellerUser.email.split("@")[0]} envió una contraoferta por: ${itemTitle}. Un administrador te contactará para mediar el trato.`,
         cardImage: cardImage || "",
         link: "/activity",
         status: "countered",

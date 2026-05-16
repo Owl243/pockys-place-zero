@@ -2,15 +2,16 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { db, auth } from "../firebase";
 import {
-    collection, query, orderBy, limit, onSnapshot, where
+    collection, query, orderBy, limit, onSnapshot, where, doc, getDoc, setDoc
 } from "firebase/firestore";
-import { getPriceRaw, normalizeCardNumber } from "../utils/cardUtils";
+import { getDisplayName, getDisplayPriceMxn, getPriceRaw, normalizeCardNumber } from "../utils/cardUtils";
 import { startChat } from "../services/chatService";
 import { useToast } from "../context/ToastContext";
 import { useCurrency } from "../context/CurrencyContext";
 import { saveCard, getInventory } from "../services/inventoryService";
 import { postToFeed, postWishlistPublic } from "../services/feedService";
 import { addRequest } from "../services/firebaseService";
+import { createListing, listenActiveListings } from "../services/listingsService";
 
 // ──â”€ Auth Gate Modal ────────────────────────────────────────────────────────
 function AuthGateModal({ onClose, onGoAuth }) {
@@ -56,40 +57,121 @@ function AuthGateModal({ onClose, onGoAuth }) {
     );
 }
 
-// ──â”€ Card Sale Item ──────────────────────────────────────────────────────────
-function SaleCard({ item, onInteract, user }) {
-    const price = getPriceRaw(item.cardPriceData || item);
-    const isMe = user?.uid === item.userId;
+function SellPromptModal({ open, draft, onChange, onClose, onConfirm }) {
+    if (!open) return null;
+
+    return (
+        <div
+            className="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center px-3"
+            style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(8px)", zIndex: 9999 }}
+            onClick={onClose}
+        >
+            <div
+                className="bg-dark rounded-5 border border-white border-opacity-10 shadow-2xl p-4 w-100"
+                style={{ maxWidth: "420px" }}
+                onClick={(event) => event.stopPropagation()}
+            >
+                <h5 className="fw-bold text-white mb-2">Publicar en venta</h5>
+                <p className="text-white-50 small mb-3">Define el nombre visible y tu precio en MXN.</p>
+                <div className="d-flex flex-column gap-3">
+                    <input
+                        className="form-control bg-black bg-opacity-40 border-white border-opacity-10 text-white"
+                        placeholder="Nombre visible"
+                        value={draft.customName}
+                        onChange={(event) => onChange("customName", event.target.value)}
+                    />
+                    <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        className="form-control bg-black bg-opacity-40 border-white border-opacity-10 text-white"
+                        placeholder="Precio MXN"
+                        value={draft.customPriceMxn}
+                        onChange={(event) => onChange("customPriceMxn", event.target.value)}
+                    />
+                    <div>
+                        <label className="text-white-50 small mb-2 d-block">Entrega</label>
+                        <div className="d-flex flex-wrap gap-2">
+                            {["Envio", "Blanquita"].map((pref) => (
+                                <button
+                                    key={pref}
+                                    type="button"
+                                    className={`btn btn-sm rounded-pill fw-bold ${draft.deliveryPrefs.includes(pref) ? "btn-emerald text-white" : "btn-outline-light"}`}
+                                    onClick={() => onChange("deliveryPrefs", draft.deliveryPrefs.includes(pref) ? draft.deliveryPrefs.filter((item) => item !== pref) : [...draft.deliveryPrefs, pref])}
+                                >
+                                    {pref}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+                <div className="d-flex gap-2 mt-4">
+                    <button className="btn btn-outline-light rounded-pill flex-grow-1" onClick={onClose}>Cancelar</button>
+                    <button className="btn btn-emerald rounded-pill flex-grow-1 fw-bold" onClick={onConfirm} disabled={!draft.customName.trim() || draft.customPriceMxn === ""}>
+                        Publicar
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+// ── Card Sale Item ──────────────────────────────────────────────────────────
+function SaleCard({ item, onInteract, user, formatPrice }) {
+    const price = getDisplayPriceMxn(item);
+    const isMe = user?.uid === item.ownerId;
+    const isPending = item.status === "pending_admin";
+    const deliveryPrefs = (item.deliveryPrefs || []).filter((pref) => pref !== "Metro (CDMX)" && pref !== "Frikiplaza");
+    
     const handleClaim = () => {
         if (!user) { onInteract(); return; }
-        if (isMe) return;
+        if (isMe || isPending) return;
         onInteract(item, "claim");
     };
 
     return (
-        <div className="glass-card overflow-hidden h-100 position-relative" style={{ transition: "all 0.2s" }}>
+        <div className={`glass-card overflow-hidden h-100 position-relative transition-all ${isPending ? 'border-purple shadow-purple' : ''}`} style={{ transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)" }}>
+            {isPending && (
+                <div className="position-absolute top-0 start-0 w-100 h-100 z-3 d-flex flex-column" style={{ pointerEvents: 'none' }}>
+                    <div className="position-absolute top-0 start-0 w-100 h-100" style={{ background: 'rgba(88, 28, 135, 0.08)', backdropFilter: 'blur(0.5px)' }}></div>
+                    <div className="position-absolute top-0 start-0 w-100 d-flex justify-content-center pt-3">
+                        <span className="badge rounded-pill bg-purple text-white shadow-lg py-2 px-3 fw-bold animate-pulse" style={{ fontSize: '0.7rem', letterSpacing: '0.5px', zIndex: 4, pointerEvents: 'none' }}>
+                            <i className="bi bi-clock-history me-1"></i>EN TRATOS
+                        </span>
+                    </div>
+                </div>
+            )}
             <div className="p-3 d-flex align-items-center justify-content-center" style={{ background: "rgba(0,0,0,0.3)", minHeight: "160px" }}>
-                <img src={item.cardImage || (item.images?.small)} alt={item.cardName || item.name} style={{ height: "120px", objectFit: "contain", filter: "drop-shadow(0 8px 16px rgba(0,0,0,0.5))" }} />
-                {item.isPro && <span className="position-absolute top-0 end-0 m-2 badge rounded-pill fw-bold" style={{ background: "linear-gradient(135deg,#f59e0b,#f97316)", fontSize: "0.6rem" }}>â­ PRO</span>}
+                <img src={item.cardImage || (item.images?.small)} alt={getDisplayName(item)} style={{ height: "120px", objectFit: "contain", filter: "drop-shadow(0 8px 16px rgba(0,0,0,0.5))" }} />
+                {item.isPro && <span className="position-absolute top-0 end-0 m-2 badge rounded-pill fw-bold" style={{ background: "linear-gradient(135deg,#f59e0b,#f97316)", fontSize: "0.6rem" }}>⭐ PRO</span>}
             </div>
-            <div className="p-3 d-flex flex-column gap-1">
-                <p className="fw-bold text-white mb-0 text-truncate" style={{ fontSize: "0.9rem" }}>{item.cardName || item.name}</p>
+            <div className="p-3 d-flex flex-column gap-2">
+                <p className="fw-bold text-white mb-0 text-truncate" style={{ fontSize: "0.9rem" }}>{getDisplayName(item)}</p>
                 <div className="d-flex flex-column">
                     <p className="mb-0 text-truncate" style={{ fontSize: "0.6rem", color: "rgba(var(--pocky-primary-rgb), 0.75)" }}>{item.cardSetName || item.set?.name}</p>
                     <p className="mb-1 text-truncate opacity-50" style={{ fontSize: "0.55rem" }}>
                         {item.cardNumber || item.number} / {item.cardSetTotal || item.set?.printedTotal} • {item.cardRarity || item.rarity}
                     </p>
                 </div>
+                {deliveryPrefs.length > 0 && (
+                    <div className="d-flex flex-wrap gap-1">
+                        {deliveryPrefs.map((pref) => (
+                            <span key={pref} className="badge rounded-pill text-white" style={{ background: "rgba(255,255,255,0.08)", fontSize: "0.58rem", fontWeight: 600 }}>
+                                {pref}
+                            </span>
+                        ))}
+                    </div>
+                )}
                 <div className="d-flex justify-content-between align-items-center">
-                    <span className="fw-bold text-emerald small">{price ? `$${price.toFixed(2)}` : "N/A"}</span>
-                    {item.userName && <span className="text-white-50 extra-small">{item.userName}</span>}
+                    <span className="fw-bold text-emerald small">{price ? formatPrice(price) : "Sin precio"}</span>
+                    {item.ownerName && <span className="text-white-50 extra-small">{item.ownerName}</span>}
                 </div>
                 <button
-                    className={`btn btn-sm w-100 rounded-3 mt-2 py-2 fw-bold ${isMe ? 'btn-dark bg-opacity-20 text-white-50 disabled' : 'btn-emerald'}`}
+                    className={`btn btn-sm w-100 rounded-3 mt-2 py-2 fw-bold ${ (isMe || isPending) ? 'btn-dark bg-opacity-20 text-white-50 disabled' : 'btn-emerald'}`}
                     onClick={handleClaim}
                     style={{ fontSize: '0.75rem' }}
                 >
-                    {!user ? "Ver oferta" : isMe ? "Tu anuncio" : "Contactar"}
+                    {!user ? "Ver oferta" : isPending ? "En mediación" : isMe ? "Tu anuncio" : "Contactar"}
                 </button>
             </div>
         </div>
@@ -97,7 +179,7 @@ function SaleCard({ item, onInteract, user }) {
 }
 
 // ──â”€ Product Card Item (Sellado) ────────────────────────────────────────────â”€
-function ProductCard({ card, user, onAction, isInInventory, formatPrice }) {
+function ProductCard({ card, user, onAction, isInInventory }) {
     return (
         <div className="card border-0 rounded-4 overflow-hidden bg-dark bg-opacity-30 border border-white border-opacity-5 shadow-lg d-flex flex-row">
             <div className="p-2 bg-dark bg-opacity-50 d-flex align-items-center justify-content-center" style={{ width: "90px", height: "130px", flexShrink: 0 }}>
@@ -123,8 +205,7 @@ function ProductCard({ card, user, onAction, isInInventory, formatPrice }) {
 }
 
 // ──â”€ TCG Card Item (Explorar) ────────────────────────────────────────────────
-function TCGCard({ card, user, onAction, isInInventory, formatPrice }) {
-    const price = getPriceRaw(card);
+function TCGCard({ card, user, onAction, isInInventory }) {
     return (
         <div className="card border-0 rounded-4 overflow-hidden bg-dark bg-opacity-30 border border-white border-opacity-5 shadow-lg d-flex flex-row">
             <div className="p-2 bg-dark bg-opacity-50 d-flex align-items-center justify-content-center" style={{ width: "90px", height: "130px", flexShrink: 0 }}>
@@ -134,7 +215,7 @@ function TCGCard({ card, user, onAction, isInInventory, formatPrice }) {
                 <div>
                     <div className="mb-1 d-flex justify-content-between align-items-center gap-2">
                         <span className="badge text-emerald border border-emerald border-opacity-30 rounded-pill px-2 py-1 text-truncate" style={{ fontSize: '0.55rem', maxWidth: '70%' }}>{card.set.name}</span>
-                        <span className="text-white fw-bold extra-small flex-shrink-0">{price ? formatPrice(price) : "N/A"}</span>
+                        <span className="text-white fw-bold extra-small flex-shrink-0">Sin precio local</span>
                     </div>
                     <h6 className="fw-bold mb-1 text-white text-truncate" style={{ fontSize: '0.9rem' }}>{card.name}</h6>
                     <p className="text-white-50 extra-small mb-0 text-truncate opacity-50">
@@ -181,6 +262,7 @@ export default function PublicFeed({ user }) {
     const [productQuery, setProductQuery] = useState("");
     const [products, setProducts] = useState([]);
     const [productsLoading, setProductsLoading] = useState(false);
+    const [sellDraft, setSellDraft] = useState({ open: false, card: null, customName: "", customPriceMxn: "", deliveryPrefs: [] });
 
     useEffect(() => {
         const tab = searchParams.get("tab");
@@ -189,9 +271,8 @@ export default function PublicFeed({ user }) {
 
     // ── Fetch ventas ──────────────────────────────────────────────────────────
     useEffect(() => {
-        const q = query(collection(db, "feed"), where("action", "==", "sale"), orderBy("timestamp", "desc"), limit(40));
-        const unsub = onSnapshot(q, snap => {
-            const fetched = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        const unsub = listenActiveListings((items) => {
+            const fetched = [...items];
             fetched.sort((a, b) => (a.isPro ? -1 : (b.isPro ? 1 : 0)));
             setSales(fetched);
             setLoading(false);
@@ -488,17 +569,72 @@ export default function PublicFeed({ user }) {
 
     const handleTcgAction = async (card, type) => {
         if (!user) { setShowGate(true); return; }
+        if (type === "sale") {
+            const userDoc = await getDoc(doc(db, "users", user.uid));
+            setSellDraft({
+                open: true,
+                card,
+                customName: card.name || "",
+                customPriceMxn: "",
+                deliveryPrefs: userDoc.exists()
+                    ? (userDoc.data().deliveryPrefs || []).filter((item) => item !== "Metro (CDMX)" && item !== "Frikiplaza")
+                    : []
+            });
+            return;
+        }
         const dataMap = {
             inventory: { inInventory: true, inWishlist: false, forSale: false, label: "Inventario", toastType: "success" },
             wishlist: { inInventory: false, inWishlist: true, forSale: false, label: "Wishlist", toastType: "pink" },
             sale: { inInventory: true, inWishlist: false, forSale: true, label: "Venta", toastType: "error" }
         };
         const action = dataMap[type];
-        await saveCard(user.uid, card, { inInventory: action.inInventory, inWishlist: action.inWishlist, forSale: action.forSale });
-        if (type === 'sale') await postToFeed(user.uid, user.displayName || user.email.split("@")[0], user.photoURL, 'sale', card, user);
-        if (type === 'wishlist') await postWishlistPublic(user.uid, user.displayName || user.email.split("@")[0], user.photoURL, card);
+        await saveCard(user.uid, card, {
+            inInventory: action.inInventory,
+            inWishlist: action.inWishlist,
+            forSale: action.forSale,
+            customName: card.name,
+            customPriceMxn: null
+        });
+        if (type === "wishlist") {
+            await postWishlistPublic(user.uid, user.displayName || user.email.split("@")[0], user.photoURL, card);
+        }
         getInventory(user.uid).then(setUserInventory);
         showToast(`${card.name} añadida a ${action.label}`, action.toastType);
+    };
+
+    const handleSellDraftChange = (field, value) => {
+        setSellDraft((current) => ({ ...current, [field]: value }));
+    };
+
+    const handleConfirmSale = async () => {
+        if (!user || !sellDraft.card) return;
+        const customName = sellDraft.customName.trim() || sellDraft.card.name;
+        const customPriceMxn = sellDraft.customPriceMxn === "" ? null : Number(sellDraft.customPriceMxn);
+        const card = sellDraft.card;
+        await setDoc(doc(db, "users", user.uid), { deliveryPrefs: sellDraft.deliveryPrefs }, { merge: true });
+
+        await saveCard(user.uid, card, {
+            inInventory: true,
+            inWishlist: false,
+            forSale: true,
+            customName,
+            customPriceMxn
+        });
+
+        const listing = await createListing(user, { ...card, customName, customPriceMxn, deliveryPrefs: sellDraft.deliveryPrefs });
+        await postToFeed(
+            user.uid,
+            user.displayName || user.email.split("@")[0],
+            user.photoURL,
+            "sale",
+            { ...card, customName, customPriceMxn, listingId: listing.id },
+            user,
+            { listingId: listing.id }
+        );
+
+        getInventory(user.uid).then(setUserInventory);
+        setSellDraft({ open: false, card: null, customName: "", customPriceMxn: "", deliveryPrefs: [] });
+        showToast(`${customName} añadida a Venta`, "error");
     };
 
     const handleInteract = async (item, type) => {
@@ -534,13 +670,51 @@ export default function PublicFeed({ user }) {
             <div className="animate-fade-in">
                 {activeTab === "ventas" ? (
                     loading ? <div className="text-center py-5"><div className="spinner-grow text-emerald"></div></div> : (
-                        <div className="row g-3">
-                            {sales.map(item => (
-                                <div key={item.id} className="col-6 col-md-4 col-lg-3">
-                                    <SaleCard item={item} user={user} onInteract={handleInteract} />
+                        <>
+                            {/* ── Ticker de ventas recientes ── */}
+                            {sales.filter(s => s.status === "active").length > 0 && (
+                                <div className="position-relative mb-4 overflow-hidden" style={{
+                                    borderRadius: '1rem',
+                                    background: 'rgba(var(--pocky-primary-rgb), 0.04)',
+                                    border: '1px solid rgba(var(--pocky-primary-rgb), 0.18)',
+                                    backdropFilter: 'blur(12px)',
+                                    boxShadow: '0 0 20px rgba(var(--pocky-primary-rgb), 0.06)'
+                                }}>
+                                    {/* Fade masks */}
+                                    <div className="position-absolute top-0 start-0 h-100" style={{ width: '60px', background: 'linear-gradient(to right, rgba(16,17,23,0.95), transparent)', zIndex: 2, pointerEvents: 'none' }} />
+                                    <div className="position-absolute top-0 end-0 h-100" style={{ width: '60px', background: 'linear-gradient(to left, rgba(16,17,23,0.95), transparent)', zIndex: 2, pointerEvents: 'none' }} />
+
+                                    {/* Label */}
+                                    <div className="position-absolute top-0 start-0 h-100 d-flex align-items-center ps-3" style={{ zIndex: 3 }}>
+                                        <span className="badge rounded-pill fw-bold" style={{ fontSize: '0.6rem', background: 'rgba(var(--pocky-primary-rgb), 0.15)', color: 'var(--pocky-primary)', border: '1px solid rgba(var(--pocky-primary-rgb), 0.3)', letterSpacing: '0.8px' }}>EN VENTA</span>
+                                    </div>
+
+                                    <div className="py-2 overflow-hidden" style={{ whiteSpace: 'nowrap' }}>
+                                        <div style={{ display: 'inline-flex', gap: '2.5rem', animation: 'tickerScroll 30s linear infinite', willChange: 'transform', paddingLeft: '120px' }}>
+                                            {[...sales.filter(s => s.status === "active"), ...sales.filter(s => s.status === "active"), ...sales.filter(s => s.status === "active")].map((item, i) => (
+                                                <span key={i} className="d-inline-flex align-items-center gap-2" style={{ flexShrink: 0 }}>
+                                                    {item.cardImage && (
+                                                        <img src={item.cardImage} alt="" style={{ height: '28px', width: '20px', objectFit: 'contain', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))', flexShrink: 0 }} />
+                                                    )}
+                                                    <span className="fw-bold" style={{ color: 'rgba(255,255,255,0.9)', fontSize: '0.78rem' }}>{item.cardName || item.customName}</span>
+                                                    <span style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.7rem' }}>por</span>
+                                                    <span style={{ color: 'rgba(255,255,255,0.55)', fontSize: '0.72rem' }}>{item.ownerName}</span>
+                                                    {item.priceMxn && <span className="fw-bold" style={{ color: 'var(--pocky-primary)', fontSize: '0.78rem' }}>${item.priceMxn}</span>}
+                                                    <span style={{ color: 'rgba(var(--pocky-primary-rgb), 0.3)', fontSize: '0.6rem' }}>◆</span>
+                                                </span>
+                                            ))}
+                                        </div>
+                                    </div>
                                 </div>
-                            ))}
-                        </div>
+                            )}
+                            <div className="row g-3">
+                                {sales.filter(s => s.status !== "sold").map(item => (
+                                    <div key={item.id} className="col-6 col-md-4 col-lg-3">
+                                        <SaleCard item={item} user={user} onInteract={handleInteract} formatPrice={formatPrice} />
+                                    </div>
+                                ))}
+                            </div>
+                        </>
                     )
                 ) : activeTab === "tendencias" ? (
                     <div className="d-flex flex-column gap-2">
@@ -548,7 +722,7 @@ export default function PublicFeed({ user }) {
                             <div className="text-center py-5 text-white-50 opacity-50">No hay tendencias en este momento</div>
                         ) : (
                             wishlists.map(item => (
-<div key={item.id} className="d-flex align-items-stretch gap-3 p-4 rounded-4 shadow-lg position-relative overflow-hidden mb-2" style={{ background: "linear-gradient(145deg, rgba(255, 75, 145, 0.08) 0%, transparent 100%)", border: "1px solid rgba(255,75,145,0.3)" }}>
+                                <div key={item.id} className="d-flex align-items-stretch gap-3 p-4 rounded-4 shadow-lg position-relative overflow-hidden mb-2" style={{ background: "linear-gradient(145deg, rgba(255, 75, 145, 0.08) 0%, transparent 100%)", border: "1px solid rgba(255,75,145,0.3)" }}>
                                     <div className="position-absolute top-0 end-0 px-3 py-1 bg-pink text-white fw-bold rounded-bl-3" style={{ fontSize: '0.7rem' }}>Buscando</div>
                                     <div className="d-flex align-items-center justify-content-center flex-shrink-0">
                                         {item.cardImage ? <img src={item.cardImage} style={{ width: "80px", height: "113px", objectFit: "contain", filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.4))' }} /> : <div className="bg-pink bg-opacity-10 rounded" style={{ width: "80px", height: "113px" }}></div>}
@@ -638,9 +812,9 @@ export default function PublicFeed({ user }) {
                                 {tcgCards.map(card => (
                                     <div key={card.id} className="col">
                                         {searchMode === 'producto' ? (
-                                            <ProductCard card={card} user={user} onAction={handleTcgAction} isInInventory={id => userInventory.some(c => c.id === id && c.inInventory)} formatPrice={formatPrice} />
+                                            <ProductCard card={card} user={user} onAction={handleTcgAction} isInInventory={id => userInventory.some(c => c.id === id && c.inInventory)} />
                                         ) : (
-                                            <TCGCard card={card} user={user} onAction={handleTcgAction} isInInventory={id => userInventory.some(c => c.id === id && c.inInventory)} formatPrice={formatPrice} />
+                                            <TCGCard card={card} user={user} onAction={handleTcgAction} isInInventory={id => userInventory.some(c => c.id === id && c.inInventory)} />
                                         )}
                                     </div>
                                 ))}
@@ -662,6 +836,13 @@ export default function PublicFeed({ user }) {
             </div>
 
             {showGate && <AuthGateModal onClose={() => setShowGate(false)} onGoAuth={(mode) => navigate("/auth", { state: { mode } })} />}
+            <SellPromptModal
+                open={sellDraft.open}
+                draft={sellDraft}
+                onChange={handleSellDraftChange}
+                onClose={() => setSellDraft({ open: false, card: null, customName: "", customPriceMxn: "", deliveryPrefs: [] })}
+                onConfirm={handleConfirmSale}
+            />
 
             <style>{`
                 .extra-small { font-size: 0.65rem; }
@@ -673,6 +854,10 @@ export default function PublicFeed({ user }) {
                 .hover-bg-emerald-opacity:hover { background: rgba(var(--pocky-primary-rgb), 0.1); }
                 .cursor-pointer { cursor: pointer; }
                 .z-3 { z-index: 1050; }
+                @keyframes tickerScroll {
+                    0% { transform: translateX(0); }
+                    100% { transform: translateX(-33.333%); }
+                }
             `}</style>
         </div>
     );
